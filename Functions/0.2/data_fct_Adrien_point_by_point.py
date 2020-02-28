@@ -356,8 +356,10 @@ def load_gui(filter_nocomplete):
         # determine which points are not complete
         # the way the code is done usually leads to
         # only one uncomplete point but in any case
-        # I handle the possibility for multiple uncomplete
+        # I handle the possibility for multiple uncomplete.
+        all_subdir_temp = []
         pts_to_delete = []
+        deleted_points = 0
         for i,j in enumerate(all_points):
             temp = [k for k in all_subdir if j in k]
             if len(temp) != num_rep: # compare number of repetition for each point
@@ -367,10 +369,20 @@ def load_gui(filter_nocomplete):
         # removing uncomplete points from the list all_subdir
         for i,w in enumerate(all_subdir): # sweep all points
             for j,x in enumerate(pts_to_delete): # sweep all delete conditions
-                if x in w: # if the current point is not complete, delete from all_subdir
-                    all_subdir.remove(w)
-
-    print('Points deleted because they were not complete',pts_to_delete)
+				# print(w)
+                if x not in w: # if the current point is not complete, delete from all_subdir
+                    all_subdir_temp.append(w)
+                else:
+                    deleted_points += 1
+                    # print('===== ^ REMOVED ^ =====')
+        all_subdir = all_subdir_temp
+        del all_subdir_temp
+                    
+        print('Points deleted because they were not complete',pts_to_delete,'  '+str(deleted_points)+' pt(s)')
+        print('Total number of data directories',len(all_subdir))
+    else:
+        print('No points deleted because they were not complete')
+        print('Total number of data directories',len(all_subdir))		
 
     # all_subdir ce sont tous les répertoires contenant des donnés à analyser
     
@@ -399,7 +411,7 @@ def simu_conditions(all_subdir, myslashpos, slashcond,filename):
     # Put together points with their coordinates
     points_and_coord = {}
     for k,pt in enumerate(all_points):
-        print(k,'>',pt)
+        print(f'{k:03.0f}','>',pt)
         w = condition_separator_position[0]
         temp = []
         for i,j in enumerate(condition_name):
