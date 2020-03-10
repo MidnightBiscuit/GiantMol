@@ -182,7 +182,7 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
         legend()
         # ~ xlabel('time[ms]')
         # ~ ylabel('T[K]')
-        plt.setp(ax1.get_xticklabels(),f visible=False)
+        plt.setp(ax1.get_xticklabels(),visible=False)
 
         ax2 = subplot(212,sharex=ax1)
         plot(tt*1.e3,PM[:])
