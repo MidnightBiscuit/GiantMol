@@ -369,26 +369,26 @@ def load_gui(filter_nocomplete):
                                      # I will remove this point
                 pts_to_delete.append(j)
                 
-		# removing uncomplete points from the list all_subdir
-		if len(pts_to_delete) != 0:    
-			for i,w in enumerate(all_subdir): # sweep all points
-				print(w)
-				for j,x in enumerate(pts_to_delete): # sweep all delete conditions
-					print(x)
-					# print(w)
-					if x not in w: # if the current point is not complete, delete from all_subdir
-						all_subdir_temp.append(w)
-					else:
-						deleted_points += 1
-						# print('===== ^ REMOVED ^ =====')
-			all_subdir = all_subdir_temp
+        # removing uncomplete points from the list all_subdir
+        if len(pts_to_delete) != 0:
+            for i,w in enumerate(all_subdir): # sweep all points
+                print(w)
+                for j,x in enumerate(pts_to_delete): # sweep all delete conditions
+                    print(x)
+                    # print(w)
+                    if x not in w: # if the current point is not complete, delete from all_subdir
+                        all_subdir_temp.append(w)
+                    else:
+                        deleted_points += 1
+                        # print('===== ^ REMOVED ^ =====')
+            all_subdir = all_subdir_temp
         del all_subdir_temp
                     
         print('Points deleted because they were not complete',pts_to_delete,'  '+str(deleted_points)+' pt(s)')
         print('Total number of data directories',len(all_subdir))
     else:
         print('No points deleted because they were not complete')
-        print('Total number of data directories',len(all_subdir))		
+        print('Total number of data directories',len(all_subdir))        
 
     # all_subdir ce sont tous les répertoires contenant des donnés à analyser
     
