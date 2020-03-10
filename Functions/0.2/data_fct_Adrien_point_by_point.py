@@ -182,7 +182,7 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
         legend()
         # ~ xlabel('time[ms]')
         # ~ ylabel('T[K]')
-        plt.setp(ax1.get_xticklabels(), visible=False)
+        plt.setp(ax1.get_xticklabels(),f visible=False)
 
         ax2 = subplot(212,sharex=ax1)
         plot(tt*1.e3,PM[:])
@@ -360,22 +360,28 @@ def load_gui(filter_nocomplete):
         all_subdir_temp = []
         pts_to_delete = []
         deleted_points = 0
+        
+        # sweep all points
         for i,j in enumerate(all_points):
-            temp = [k for k in all_subdir if j in k]
+            temp = [k for k in all_subdir if j in k] # all addresses given one point condition
             if len(temp) != num_rep: # compare number of repetition for each point
                                      # if different from the reference (num_rep)
                                      # I will remove this point
                 pts_to_delete.append(j)
-        # removing uncomplete points from the list all_subdir
-        for i,w in enumerate(all_subdir): # sweep all points
-            for j,x in enumerate(pts_to_delete): # sweep all delete conditions
-				# print(w)
-                if x not in w: # if the current point is not complete, delete from all_subdir
-                    all_subdir_temp.append(w)
-                else:
-                    deleted_points += 1
-                    # print('===== ^ REMOVED ^ =====')
-        all_subdir = all_subdir_temp
+                
+		# removing uncomplete points from the list all_subdir
+		if len(pts_to_delete) != 0:    
+			for i,w in enumerate(all_subdir): # sweep all points
+				print(w)
+				for j,x in enumerate(pts_to_delete): # sweep all delete conditions
+					print(x)
+					# print(w)
+					if x not in w: # if the current point is not complete, delete from all_subdir
+						all_subdir_temp.append(w)
+					else:
+						deleted_points += 1
+						# print('===== ^ REMOVED ^ =====')
+			all_subdir = all_subdir_temp
         del all_subdir_temp
                     
         print('Points deleted because they were not complete',pts_to_delete,'  '+str(deleted_points)+' pt(s)')
