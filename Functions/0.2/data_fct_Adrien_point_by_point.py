@@ -372,10 +372,9 @@ def load_gui(filter_nocomplete):
         # removing uncomplete points from the list all_subdir
         if len(pts_to_delete) != 0:
             for i,w in enumerate(all_subdir): # sweep all points
-                print(w)
+                # ~ print(w)
                 for j,x in enumerate(pts_to_delete): # sweep all delete conditions
-                    print(x)
-                    # print(w)
+                    # ~ print(x)
                     if x not in w: # if the current point is not complete, delete from all_subdir
                         all_subdir_temp.append(w)
                     else:
