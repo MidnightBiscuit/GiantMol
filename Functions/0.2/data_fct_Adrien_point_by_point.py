@@ -332,7 +332,7 @@ def load_gui(filter_nocomplete):
         else:
             slashcond = 6 # the slash number just before runs (after date)
     else:
-        slashcond = 2
+        slashcond = -2
 
     print('> myslashpos |',myslashpos)
     print('> slashcond |',slashcond)
