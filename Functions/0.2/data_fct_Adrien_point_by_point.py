@@ -543,8 +543,8 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
             r_LC,v_LC,a_LC = load_xyz_init_bin_DP(my_file)        
 
             # filter lost ions
-            x_LC_clip = [r_LC[0,x] for x in range(len(r_LC[0,:])) if abs(r_LC[0,x]) <6e-2]
-            y_LC_clip = [r_LC[1,x] for x in range(len(r_LC[1,:])) if abs(r_LC[1,x]) <6e-2]
+            x_LC_clip = [r_LC[0,x] for x in range(len(r_LC[0,:])) if abs(r_LC[0,x]) <10e-2] #6e-2
+            y_LC_clip = [r_LC[1,x] for x in range(len(r_LC[1,:])) if abs(r_LC[1,x]) <10e-2]
             z_LC_clip = [r_LC[2,x] for x in range(len(r_LC[2,:])) if abs(r_LC[2,x]) <1e-0]
     #         r_LC_clip[k][j][:] = [x_LC_clip,y_LC_clip,z_LC_clip]
             r_LC_clip = [x_LC_clip,y_LC_clip,z_LC_clip]
