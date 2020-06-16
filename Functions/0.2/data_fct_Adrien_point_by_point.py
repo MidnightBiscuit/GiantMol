@@ -216,7 +216,10 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
     file2 = 'SimuType6_01' + file_name[i_aux:]
 
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
-    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
+    try:
+        tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
+    except:
+        tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2)
 
     T_variation  = mean(T_aux2[-100:,0])+mean(T_aux2[-100:,1])+mean(T_aux2[-100:,2]) - mean(T_aux1[-100:,0])+mean(T_aux1[-100:,1])+mean(T_aux1[-100:,2])
             
@@ -224,7 +227,7 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
     # Auxiliary arrays:
     t_aux1 = array([tt2[ 0],tt2[ 0]])
     t_aux2 = array([tt2[-1],tt2[-1]])
-    y1_aux = array([1.0e-3 ,1.0e-1 ])
+    y1_aux = array([1.0e-4 ,3.0e4 ])
 #     y2_aux = array([0 ,20 ])
     y2_aux = array([0 ,50 ])
 
@@ -235,33 +238,21 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
     if flag_plot == 1 :
         #fig_name = file_name[-9:]
         figure(fig_name); clf()
-        ax1 = subplot(211)
+        ax1 = subplot(111)
         semilogy(tt*1.e3,T_aux[:,0], label='Tx')
         semilogy(tt*1.e3,T_aux[:,1], label='Ty')
         semilogy(tt*1.e3,T_aux[:,2], label='Tz')
         semilogy(t_aux1*1.e3,y1_aux,'r')
         semilogy(t_aux2*1.e3,y1_aux,'r')
         ax1.grid()
+        ax1.set_xticks([1e-4,1e-2,1,1e2,1e4])
 
         legend()
-        # ~ xlabel('time[ms]')
-        # ~ ylabel('T[K]')
-        plt.setp(ax1.get_xticklabels(),visible=False)
-
-        ax2 = subplot(212,sharex=ax1)
-        plot(tt*1.e3,PM[:])
-        plot(t_aux1*1.e3,y2_aux,'r')
-        plot(t_aux2*1.e3,y2_aux,'r')
-        ax2.grid()
-        
         xlabel('time[ms]')
-        ylabel('Counts')
-                               
-        ax1.set_xlim(xlim1)
-        ax1.set_ylim(ylim1)
-        ax2.set_ylim(ylim2)
+        ylabel('T[K]')
+        
+        fig.set_size_inches(11.69, 8.27)
         plt.tight_layout()
-        subplots_adjust(hspace=0.015)
         
     return tt, T_aux, PM, PM_variation, T_variation
 
@@ -273,7 +264,7 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
             
     xlim1 = kwargs.get('xlim1', (-0.1,6))
     ylim1 = kwargs.get('ylim1', (0.2*1e-3,2e4))
-    ylim2 = kwargs.get('ylim2', (-2,85))
+    ylim3 = kwargs.get('ylim2', (-2,85))
     
     i_aux = file_name.find('_N')
     file1 = 'SimuType0'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
@@ -315,28 +306,30 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
         semilogy(tt*1.e3,T_aux[:,2], label='Tz')
         semilogy(t_aux1*1.e3,y1_aux,'r')
         semilogy(t_aux2*1.e3,y1_aux,'r')
+        ax1.set_yticks([1e-4,1e-2,1,1e2,1e4])
         ax1.grid()
         # annotate('Laser ON', xy=(0.5,350), xycoords='data',
             # size=24, ha='left', va='top', color='xkcd:azul',
             # bbox=dict(boxstyle='round', fc='white',edgecolor='xkcd:azul'))
         
 
-        legend(title='T Laser ON')
+        legend(title='Laser ON',fontsize=18)
         # ~ xlabel('time[ms]')
         # ~ ylabel('T[K]')
         plt.setp(ax1.get_xticklabels(),visible=False)
 
-        ax2 = subplot(312,sharex=ax1)
-        semilogy(tt_relax*1.e3,T_aux_relax[:,0], label='Tx')
-        semilogy(tt_relax*1.e3,T_aux_relax[:,1], label='Ty')
-        semilogy(tt_relax*1.e3,T_aux_relax[:,2], label='Tz')
+        ax2 = subplot(312,sharex=ax1,sharey=ax1)
+        semilogy(tt_relax*1.e3,T_aux_relax[:,0], label='Tx',nonposy='mask')
+        semilogy(tt_relax*1.e3,T_aux_relax[:,1], label='Ty',nonposy='mask')
+        semilogy(tt_relax*1.e3,T_aux_relax[:,2], label='Tz',nonposy='mask')
         semilogy(t_aux1*1.e3,y1_aux,'r')
         semilogy(t_aux2*1.e3,y1_aux,'r')
+        ax2.set_yticks([1e-4,1e-2,1,1e2,1e4])
         ax2.grid()
         # annotate('laser off après injection', xy=(0.5,350), xycoords='data',
             # size=24, ha='left', va='top', color='xkcd:azul',
             # bbox=dict(boxstyle='round', fc='white',edgecolor='xkcd:azul'))
-        legend(title='T Laser OFF après injection')    
+        legend(title='Laser OFF après injection',fontsize=18)    
         plt.setp(ax2.get_xticklabels(),visible=False)
 
         ax3 = subplot(313,sharex=ax1)
@@ -350,8 +343,10 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
                                
         ax1.set_xlim(xlim1)
         ax1.set_ylim(ylim1)
-        ax3.set_ylim(ylim2)
+        ax3.set_ylim(ylim3)
         plt.tight_layout()
+        
+        fig.set_size_inches(11.69, 8.27)
         subplots_adjust(hspace=0.015)
         
     return tt, T_aux, PM, PM_variation, T_variation
