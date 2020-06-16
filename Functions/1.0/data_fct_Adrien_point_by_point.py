@@ -214,15 +214,18 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
     i_aux = file_name.find('_N')
     file1 = 'SimuType0'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
     file2 = 'SimuType6_01' + file_name[i_aux:]
+    file3 = 'SimuType2_01' + file_name[i_aux:]
 
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3+'50eV')
     try:
-        tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
+        tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')        
     except:
         tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2)
 
     T_variation  = mean(T_aux2[-100:,0])+mean(T_aux2[-100:,1])+mean(T_aux2[-100:,2]) - mean(T_aux1[-100:,0])+mean(T_aux1[-100:,1])+mean(T_aux1[-100:,2])
-            
+    aux = mean(PM1[-100:])
+    PM_variation = ( aux - mean(PM3[-100:]) ) / aux
 
     # Auxiliary arrays:
     t_aux1 = array([tt2[ 0],tt2[ 0]])
@@ -237,7 +240,7 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
     
     if flag_plot == 1 :
         #fig_name = file_name[-9:]
-        figure(fig_name); clf()
+        fig = figure(fig_name); clf()
         ax1 = subplot(111)
         semilogy(tt*1.e3,T_aux[:,0], label='Tx')
         semilogy(tt*1.e3,T_aux[:,1], label='Ty')
@@ -245,7 +248,7 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
         semilogy(t_aux1*1.e3,y1_aux,'r')
         semilogy(t_aux2*1.e3,y1_aux,'r')
         ax1.grid()
-        ax1.set_xticks([1e-4,1e-2,1,1e2,1e4])
+        # ax1.set_xticks([1e-4,1e-2,1,1e2,1e4])
 
         legend()
         xlabel('time[ms]')
@@ -275,7 +278,11 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
     tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
     tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3+'50eV')
-    tt4, T_CM4, T_aux4, PM4 = load_T_and_PM_simu(file_dir2+'Temp_'+file4+'50eV')
+    try:
+        tt4, T_CM4, T_aux4, PM4 = load_T_and_PM_simu(file_dir2+'Temp_'+file4+'50eV')        
+    except:
+        tt4, T_CM4, T_aux4, PM4 = load_T_and_PM_simu(file_dir2+'Temp_'+file4)
+    
 
     aux = mean(PM1[-100:])
     PM_variation = ( aux - mean(PM3[-100:]) ) / aux
@@ -299,7 +306,7 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
     
     if flag_plot == 1 :
         #fig_name = file_name[-9:]
-        figure(fig_name); clf()
+        fig = figure(fig_name); clf()
         ax1 = subplot(311)
         semilogy(tt*1.e3,T_aux[:,0], label='Tx')
         semilogy(tt*1.e3,T_aux[:,1], label='Ty')
@@ -636,18 +643,6 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
     # r_LC_clip = [[[] for i in range(elem_2)] for j in range(elem_0)]
     dim_nu=zeros((len(points_and_coord),len(num_runs),3))
 
-    # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
-    # ~ for rf in range(elem_2):     # Vrf  j
-        # ~ for dc in range(elem_1):
-            # ~ print('rf - dc - tr')
-            # ~ for tr in range(elem_0): # try  k
-                # ~ address = ( work_rep[:myslashpos[slashcond]]
-                            # ~ +str(cond_zero_name)+str(tr)
-                            # ~ +str(cond_one_name)+str(key1[dc])
-                            # ~ +str(cond_two_name)+str(key2[rf]) )
-                # ~ fileload[tr][dc].append(adress)
-                # ~ print(f'{rf:02}','-',f'{dc:02}','-',f'{tr:02}',' > ',fileload[tr][dc][rf])
-
     t0 = time.clock()
     print("Hello")
 
@@ -664,9 +659,6 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
 
         # get only .dat files in each simulation directory
         onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
-#         onlyfiles = [f for f in listdir(fileload[k][j]) if isfile(join(fileload[k][j], f))]
-#         onlyfiles = [i for i in onlyfiles if not "xva" in i]            # vire les xva_...
-#         onlyfiles = [i for i in onlyfiles if ".dat" in i]               # ne garde que les .dat
         # build path file
         data0[pnt].append('{}/{}'.format(address,sort(onlyfiles)[0].strip('.dat')))
         data2[pnt].append('{}/{}'.format(address,sort(onlyfiles)[1].strip('.dat')))
@@ -708,8 +700,6 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
         
         print(f'{pnt:02}','-',f'{rep:02}',' > ',data0[pnt][rep])
 
-    # print(my_dico[str(cond_two_name)+str(key2)])
-    # print(my_dico[str(cond_one_name)+str(key1)])
     t1 = time.clock() - t0
     print("Time elapsed: ", t1, 's') # CPU seconds elapsed (floating point)
     print("Time elapsed: ", t1/60, 'm') # CPU seconds elapsed (floating point)
