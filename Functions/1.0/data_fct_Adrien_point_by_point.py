@@ -167,6 +167,7 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
     tt    = concatenate( (   tt1,   tt2,   tt3) )
     T_aux = concatenate( (T_aux1,T_aux2,T_aux3) )
     PM    = concatenate( (PM1,PM2,PM3) )
+    SNR = np.abs( aux - mean(PM3[-100:]) )/np.sqrt(aux) # Sig-to-Noi ratio considering Poisson noise
     
     if flag_plot == 1 :
         #fig_name = file_name[-9:]
@@ -199,7 +200,7 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
         plt.tight_layout()
         subplots_adjust(hspace=0.015)
         
-    return tt, T_aux, PM, PM_variation, T_variation
+    return tt, T_aux, PM, PM_variation, T_variation, SNR
 
 def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs):
     
@@ -212,31 +213,34 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
     ylim2 = kwargs.get('ylim2', (-2,50))
     
     i_aux = file_name.find('_N')
-    file1 = 'SimuType0'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
-    file2 = 'SimuType6_01' + file_name[i_aux:]
+    file1 = 'SimuType0'    + file_name[i_aux:]
+    file2 = 'SimuType4_01' + file_name[i_aux:]
     file3 = 'SimuType2_01' + file_name[i_aux:]
+    file4 = 'SimuType6_01' + file_name[i_aux:]
 
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
+    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
     tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3+'50eV')
     try:
-        tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')        
+        tt4, T_CM4, T_aux4, PM4 = load_T_and_PM_simu(file_dir2+'Temp_'+file4+'50eV')        
     except:
-        tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2)
+        tt4, T_CM4, T_aux4, PM4 = load_T_and_PM_simu(file_dir2+'Temp_'+file4)
 
     T_variation  = mean(T_aux2[-100:,0])+mean(T_aux2[-100:,1])+mean(T_aux2[-100:,2]) - mean(T_aux1[-100:,0])+mean(T_aux1[-100:,1])+mean(T_aux1[-100:,2])
     aux = mean(PM1[-100:])
     PM_variation = ( aux - mean(PM3[-100:]) ) / aux
+    SNR = np.abs( aux - mean(PM3[-100:]) )/np.sqrt(aux) # Sig-to-Noi ratio considering Poisson noise
 
     # Auxiliary arrays:
-    t_aux1 = array([tt2[ 0],tt2[ 0]])
-    t_aux2 = array([tt2[-1],tt2[-1]])
+    t_aux1 = array([tt4[ 0],tt4[ 0]])
+    t_aux2 = array([tt4[-1],tt4[-1]])
     y1_aux = array([1.0e-4 ,3.0e4 ])
 #     y2_aux = array([0 ,20 ])
     y2_aux = array([0 ,50 ])
 
-    tt    = concatenate( (   tt1,   tt2) )
-    T_aux = concatenate( (T_aux1,T_aux2) )
-    PM    = concatenate( (PM1,PM2) )
+    tt    = concatenate( (   tt1,   tt4) )
+    T_aux = concatenate( (T_aux1,T_aux4) )
+    PM    = concatenate( (PM1,PM4) )
     
     if flag_plot == 1 :
         #fig_name = file_name[-9:]
@@ -257,7 +261,11 @@ def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,f
         fig.set_size_inches(11.69, 8.27)
         plt.tight_layout()
         
-    return tt, T_aux, PM, PM_variation, T_variation
+    temps = [tt,t_aux1, t_aux2]
+    fluo = [PM, PM_variation, SNR]
+    temperature = [T_aux, T_variation]
+        
+    return temps, temperature, fluo
 
 def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs):
     
@@ -283,11 +291,10 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
     except:
         tt4, T_CM4, T_aux4, PM4 = load_T_and_PM_simu(file_dir2+'Temp_'+file4)
     
-
     aux = mean(PM1[-100:])
     PM_variation = ( aux - mean(PM3[-100:]) ) / aux
     T_variation  = mean(T_aux3[-100:,0]) + mean(T_aux3[-100:,1]) + mean(T_aux3[-100:,2])
-            
+    SNR = np.abs( aux - mean(PM3[-100:]) )/np.sqrt(aux) # Sig-to-Noi ratio considering Poisson noise
 
     # Auxiliary arrays:
     t_aux1 = array([tt2[ 0],tt2[ 0]])
@@ -356,7 +363,11 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
         fig.set_size_inches(11.69, 8.27)
         subplots_adjust(hspace=0.015)
         
-    return tt, T_aux, PM, PM_variation, T_variation
+        temps = [tt,t_aux1, t_aux2]
+        fluo = [PM, PM_variation, SNR]
+        temperature = [T_aux, T_variation]
+        
+    return temps, temperature, fluo
 
 
 def find_PM_variation_FinalT(file_dir2,file_name):
