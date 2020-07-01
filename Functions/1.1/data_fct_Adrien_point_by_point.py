@@ -165,13 +165,14 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
     y2_aux = array([0 ,50 ])
 
     tt    = concatenate( (   tt1,   tt2,   tt3) )
+    T_CM  = concatenate( (T_CM1,T_CM2,T_CM3) )
     T_aux = concatenate( (T_aux1,T_aux2,T_aux3) )
     PM    = concatenate( (PM1,PM2,PM3) )
     SNR = np.abs( aux - mean(PM3[-100:]) )/np.sqrt(aux) # Sig-to-Noi ratio considering Poisson noise
     
     if flag_plot == 1 :
         #fig_name = file_name[-9:]
-        figure(fig_name); clf()
+        fig = figure(fig_name); clf()
         ax1 = subplot(211)
         semilogy(tt*1.e3,T_aux[:,0], label='Tx')
         semilogy(tt*1.e3,T_aux[:,1], label='Ty')
@@ -200,7 +201,11 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
         plt.tight_layout()
         subplots_adjust(hspace=0.015)
         
-    return tt, T_aux, PM, PM_variation, T_variation, SNR
+    temps = [tt,t_aux1, t_aux2]
+    fluo = [PM, PM_variation, SNR]
+    temperature = [T_aux, T_variation, T_CM]
+        
+    return temps, temperature, fluo
 
 def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs):
     
@@ -722,6 +727,91 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
     Gmol_data = [deltaEc, deltaEcRel, SNR, t_c]
     
     return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
+
+#############################
+### Single case functions ###
+
+def file_name_retrieve(address,simu_type):
+        # get only .dat files in each simulation directory
+    onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
+    tmp_file = []
+    # build path file
+    if simu_type == 'Collision':
+        for k in range(3):
+            tmp_file.append('{}/{}'.format(address,sort(onlyfiles)[k].strip('.dat')))
+    elif simu_type == 'RF_relax':
+        for k in range(4):
+            try:
+                tmp_file.append('{}/{}'.format(address,sort(onlyfiles)[k].strip('.dat')))
+            except(IndexError):
+                tmp_file.append('No file for this SimuType')
+                print('A file is missing, skiping the file number',k)
+            
+    return onlyfiles, tmp_file
+
+# Get the size of the cloud
+def cloud_size(address,onlyfiles, **kwargs):
+    radial_thresh = kwargs.get('radial_thresh', 10e-2)
+    axial_thresh  = kwargs.get('axial_thresh', 1e-0)
+    
+    try:
+        my_file = '{}/xva{}'.format(address,sort(onlyfiles)[0].strip('.dat')[4:])
+        r_LC,v_LC,a_LC = load_xyz_init_bin_DP(my_file)
+
+        # filter lost ions
+        x_LC_clip = [r_LC[0,x] for x in range(len(r_LC[0,:])) if abs(r_LC[0,x]) < radial_thresh] #6e-2
+        y_LC_clip = [r_LC[1,x] for x in range(len(r_LC[1,:])) if abs(r_LC[1,x]) < radial_thresh]
+        z_LC_clip = [r_LC[2,x] for x in range(len(r_LC[2,:])) if abs(r_LC[2,x]) < axial_thresh]
+#         r_LC_clip[k][j][:] = [x_LC_clip,y_LC_clip,z_LC_clip]
+        r_LC_clip = [x_LC_clip,y_LC_clip,z_LC_clip]
+        dim_nu = [max(r_LC_clip[l][:]) for l in range(3)]
+    except:
+        dim_nu = None
+            
+    return r_LC_clip, dim_nu
+
+# Return Temp, Fluo, for SimuType2 RF with laser
+def load_T_PM_cloud_GMol(address,flag_plot):
+    # retrieve files adresses
+    onlyfiles, data_files = file_name_retrieve(address,simu_type='Collision')
+    file0 = data_files[0];file2 = data_files[1];file4 = data_files[2]
+    # load Ec variation for GMol
+    _,_,deltaEc,deltaEcRel,t_c = energy_lost(address,'xva'+sort(onlyfiles)[2][4:].strip('.dat'))
+    # load cloud size before injection
+    r_LC_clip, dim_nu = cloud_size(address,onlyfiles)
+    # load fluorescence and T var
+    # Temperature during time
+    temps, temperature, fluo = plot_T_and_PM_Init_Inje_Evol(address+'/',sort(onlyfiles)[0].strip('.dat')[4:],flag_plot,'T_PM',xlim1=(-1.5,55),ylim1=(5e-5,12e3))
+
+    fluo_var = [fluo[1], temperature[1], fluo[2]]                        # temps = [tt,t_aux1, t_aux2]
+    GMol_var = [deltaEc,deltaEcRel,t_c]                                  # fluo = [PM, PM_variation, SNR]
+    cloud_atlas = [temps[0], temperature[0], temperature[2], fluo[0]]    # temperature = [T_aux, T_variation]
+    t_aux = [temps[1],temps[2]]
+    
+    return fluo_var, GMol_var, cloud_atlas, t_aux, r_LC_clip
+
+# Return Temp, Fluo, for SimuType6 RF without laser
+def load_RF_relax(address,flag_plot,RF_relax_type):
+    # retrieve files adresses
+    onlyfiles, data_files = file_name_retrieve(address,simu_type='RF_relax')
+    file0 = data_files[0];file2 = data_files[1];file4 = data_files[2];file6 = data_files[3]
+    # load Ec variation for GMol
+    _,_,deltaEc,deltaEcRel,t_c = energy_lost(address,'xva'+sort(onlyfiles)[2][4:].strip('.dat'))
+    # load cloud size before injection
+    r_LC_clip, dim_nu = cloud_size(address,onlyfiles)
+    # load fluorescence and T var
+    # Temperature during time
+    if RF_relax_type == 'AfterCool':
+        temps, temperature, fluo = plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(address+'/',sort(onlyfiles)[0].strip('.dat')[4:],flag_plot,'RFrelax_AfterCool',xlim1=(-1.5,55),ylim1=(5e-5,12e3))
+    elif RF_relax_type == 'AfterInj':
+        temps, temperature, fluo = plot_T_and_PM_Init_RFrelax_AfterInj_Evol(address+'/',sort(onlyfiles)[0].strip('.dat')[4:],flag_plot,'RFrelax_AfterInj',xlim1=(-1.5,55),ylim1=(5e-5,12e3))
+
+    fluo_var = [fluo[1], temperature[1], fluo[2]]                        # temps = [tt,t_aux1, t_aux2]
+    GMol_var = [deltaEc,deltaEcRel,t_c]                                  # fluo = [PM, PM_variation, SNR]
+    cloud_atlas = [temps[0], temperature[0], temperature[2], fluo[0]]    # temperature = [T_aux, T_variation]
+    t_aux = [temps[1],temps[2]]
+    
+    return fluo_var, GMol_var, cloud_atlas, t_aux, r_LC_clip
 
 # ======================================================================== #
 # pour les couleurs

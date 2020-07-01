@@ -47,7 +47,7 @@ integer, parameter                   :: n_sp   = 2
 ! 0 = RF ; 1 = RF + Gauss Axial; 2 = PS
 !dir$ define potential_type = 1
 
-integer, parameter :: n_ions1 = 128*8
+integer, parameter :: n_ions1 = 1024
 !dir$ if ( HCI .eq. 0 )
 integer, parameter, dimension(n_sp)  :: n_ions = (/ n_ions1 , 0 /)
 !dir$ else
@@ -122,6 +122,7 @@ character(len=100), parameter :: str_extra2 = '1eV'
 !~ double precision   :: save_info(i_stats,13)
 !*************************************************
 ! Modified by Jofre on 09/06/2020
+character(len=32) :: arg
 integer :: i_stats_a
 integer :: i_stats_b
 double precision :: save_info(13)
@@ -286,8 +287,8 @@ double precision   , parameter :: z0_HC = 1.5d-3
 !***********************************************************************
 !                   Integration constants:
 !***********************************************************************
-integer, parameter :: ni   = 8 !number of threads
-integer, parameter :: n_dt = 100
+integer, parameter :: ni   = 6 !number of threads
+integer, parameter :: n_dt = 100 ! 100 pts par période RF
 double precision   , parameter :: dt0  = pi2 / (n_dt*Omega) ! not normalised
 !~ double precision   , parameter :: dt   = pi2 / n_dt ! normalised
 double precision :: dt, dt1, dt2
@@ -529,8 +530,8 @@ integer                 :: brng, method ,seed0, i
 ! Get i_stats_a, i_stats_b from the command line:
 ! Syntax is: ./a.out -ia i -ib i'
 ! Where i is the integer value desired
-    call get_command_argument(2, arg, status); read(arg , *) i_stats_a
-    call get_command_argument(4, arg, status); read(arg , *) i_stats_b
+    call get_command_argument(2, arg); read(arg , *) i_stats_a
+    call get_command_argument(4, arg); read(arg , *) i_stats_b
     do i = i_stats_a, i_stats_b
 !*************************************************
         print*, 'i stats', i
@@ -583,7 +584,9 @@ integer                 :: brng, method ,seed0, i
         stop
     endif
 
-    do i =i_stats0, i_stats
+    call get_command_argument(2, arg); read(arg , *) i_stats_a
+    call get_command_argument(4, arg); read(arg , *) i_stats_b
+    do i = i_stats_a, i_stats_b
         print*, 'i stats', i
         call create_files_names( )
         call post_inject_ion_simu()
@@ -641,7 +644,7 @@ integer                 :: brng, method ,seed0, i
         stop
     endif
 
-    do i =i_stats0, i_stats
+    do i = i_stats_a, i_stats_b
         print*, 'i stats', i
         call create_files_names( )
         call post_cooling_ion_simu()
@@ -1746,8 +1749,8 @@ integer :: i
         do i = 1, j_save_temp
             !dir$ if ( HCI .eq. 0 )
             write(10,221) save_temperature(i,0),&
-                          m_kb_x_inv_n_ions2(1)*save_temperature(i,1:3), &
-                          m_kb_x_inv_n_ions(1) *save_temperature(i,4:6), &
+                          m_kb_x_inv_n_ions2(1)*save_temperature(i,1:3), & ! T_CM
+                          m_kb_x_inv_n_ions(1) *save_temperature(i,4:6), & ! T_aux
                           save_temperature(i,7)/real(n_dt)
             !dir$ else
             write(10,221) save_temperature(i,0),&
