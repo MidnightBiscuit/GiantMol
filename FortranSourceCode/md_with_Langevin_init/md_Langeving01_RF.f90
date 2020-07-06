@@ -69,12 +69,6 @@ integer          , parameter :: n_ions    = 1024
 integer          , parameter :: ia(ni)=[1,129,257,385,513,641,769,897];
 integer          , parameter :: ib(ni)=[128,256,384,512,640,768,896,1024];
 
-! Supprimer le calcul des fréquences puisqu'on sera en champ RF
-! Ou bien automatiser le calcul des fréquences
-double precision , parameter :: wr2  = (2*pi*453273.79452510615)**2 ! 453273.79452510615
-double precision , parameter :: wy2  = (2*pi*453273.79452510615)**2
-double precision , parameter :: wz2  = (2*pi*181613.99646060003)**2 ! 181613.99646060003
-
 
 !***********************************************************************
 !                   Simulations parameters:
@@ -93,6 +87,134 @@ double precision  , parameter :: eta = 1.5d-21  ![kg/s] friction  coefficient
 
 double precision  , parameter :: eta_mass = eta/mass
 
+!***********************************************************************
+!                   Trapping parameters (Adrien 2020 07 06) :
+!***********************************************************************
+
+! Trap dimensions
+double precision   , parameter :: r_0   = 2.865d-3/1.14511d0
+double precision   , parameter :: L     = 0.0140608827209d0
+double precision   , parameter :: d_0   = 4d-3 ! longueur du piege
+! Trapping voltages
+double precision  , parameter :: V_st  = 0.00d0
+double precision  , parameter :: Omega = pi2 * 2.000000d006
+
+!dec$ if defined(Vrf0)
+double precision  , parameter :: V_rf  = 1.077d1
+character(len=100), parameter :: str_extra3 = 'q=0.1'
+!dec$ elseif defined(Vrf1)
+double precision  , parameter :: V_rf  = 1.615d1
+character(len=100), parameter :: str_extra3 = 'q=0.15'
+!dec$ elseif defined(Vrf2)
+double precision  , parameter :: V_rf  = 2.154d1
+character(len=100), parameter :: str_extra3 = 'q=0.2'
+!dec$ elseif defined(Vrf3)
+double precision  , parameter :: V_rf  = 2.692d1
+character(len=100), parameter :: str_extra3 = ''
+!dec$ elseif defined(Vrf4)
+double precision  , parameter :: V_rf  = 3.231d1
+character(len=100), parameter :: str_extra3 = 'q=0.3'
+!dec$ elseif defined(Vrf5)
+double precision  , parameter :: V_rf  = 3.769d1
+character(len=100), parameter :: str_extra3 = ''
+!dec$ elseif defined(Vrf6)
+double precision  , parameter :: V_rf  = 4.308d1
+character(len=100), parameter :: str_extra3 = 'q=0.4'
+!dec$ elseif defined(Vrf7)
+double precision  , parameter :: V_rf  = 4.846d1
+character(len=100), parameter :: str_extra3 = ''
+!dec$ elseif defined(Vrf8)
+double precision  , parameter :: V_rf  = 5.385d1
+character(len=100), parameter :: str_extra3 = 'q=0.5'
+!dec$ elseif defined(Vrf9)
+double precision  , parameter :: V_rf  = 5.923d1
+character(len=100), parameter :: str_extra3 = ''
+!dec$ elseif defined(Vrf10)
+double precision  , parameter :: V_rf  = 6.461d1
+character(len=100), parameter :: str_extra3 = 'q=0.6'
+!dec$ elseif defined(Vrf11)
+double precision  , parameter :: V_rf  = 7.000d1
+character(len=100), parameter :: str_extra3 = 'q=0.65'
+!dec$ elseif defined(Vrf12)
+double precision  , parameter :: V_rf  = 7.538d1
+character(len=100), parameter :: str_extra3 = 'q=0.7'
+!dec$ elseif defined(Vrf13)
+double precision  , parameter :: V_rf  = 8.077d1
+character(len=100), parameter :: str_extra3 = 'q=0.75'
+!dec$ elseif defined(Vrf14)
+double precision  , parameter :: V_rf  = 6.102d1
+character(len=100), parameter :: str_extra3 = 'q=0.5666...'
+!dec$ elseif defined(Vrf15)
+double precision  , parameter :: V_rf  = 6.282d1
+character(len=100), parameter :: str_extra3 = 'q=0.58333'
+!dec$ elseif defined(Vrf16)
+double precision  , parameter :: V_rf  = 6.641d1
+character(len=100), parameter :: str_extra3 = 'q=0.6166'
+!dec$ elseif defined(Vrf17)
+double precision  , parameter :: V_rf  = 6.820d1
+character(len=100), parameter :: str_extra3 = 'q=0.633'
+!dec$ elseif defined(Vrf18)
+double precision  , parameter :: V_rf  = 7.179d1
+character(len=100), parameter :: str_extra3 = 'q=0.666'
+!dec$ elseif defined(Vrf19)
+double precision  , parameter :: V_rf  = 5.564d1
+character(len=100), parameter :: str_extra3 = 'q=0.5166'
+!dec$ elseif defined(Vrf20)
+double precision  , parameter :: V_rf  = 5.743d1
+character(len=100), parameter :: str_extra3 = 'q=0.533'
+!dec$ endif
+
+double precision   , parameter :: Udcstart = 0.5d0   ! [V]
+!dec$ if defined(Udc0)
+double precision   , parameter :: Udc   = Udcstart    ! if other than 1V, then simply multiply by Udc
+!dec$ elseif defined(Udc1)
+double precision   , parameter :: Udc   = Udcstart*2
+!dec$ elseif defined(Udc2)
+double precision   , parameter :: Udc   = Udcstart*3
+!dec$ elseif defined(Udc3)
+double precision   , parameter :: Udc   = Udcstart*4
+!dec$ elseif defined(Udc4)
+double precision   , parameter :: Udc   = Udcstart*5
+!dec$ elseif defined(Udc5)
+double precision   , parameter :: Udc   = Udcstart*6
+!dec$ elseif defined(Udc6)
+double precision   , parameter :: Udc   = Udcstart*7
+!dec$ elseif defined(Udc7)
+double precision   , parameter :: Udc   = Udcstart*8
+!dec$ elseif defined(Udc8)
+double precision   , parameter :: Udc   = Udcstart*9
+!dec$ elseif defined(Udc9)
+double precision   , parameter :: Udc   = Udcstart*10
+!dec$ elseif defined(Udc10)
+double precision   , parameter :: Udc   = Udcstart*12
+!dec$ elseif defined(Udc11)
+double precision   , parameter :: Udc   = Udcstart*14
+!dec$ elseif defined(Udc12)
+double precision   , parameter :: Udc   = Udcstart*15
+!dec$ elseif defined(Udc13)
+double precision   , parameter :: Udc   = 3.33
+!dec$ elseif defined(Udc14)
+double precision   , parameter :: Udc   = 3.66
+!dec$ elseif defined(Udc15)
+double precision   , parameter :: Udc   = 4.5
+!dec$ elseif defined(Udc16)
+double precision   , parameter :: Udc   = 5.33
+!dec$ elseif defined(Udc17)
+double precision   , parameter :: Udc   = 5.66
+!dec$ elseif defined(Udc18)
+double precision   , parameter :: Udc   = 6
+!dec$ elseif defined(Udc19)
+double precision   , parameter :: Udc   = 6.5
+!dec$ endif
+
+double precision   , parameter :: wz_LC = pi2*90806.9982303 !when 1V applied
+double precision   , parameter :: wz2   = Udc * wz_LC**2
+
+double precision   , parameter :: a_cte_Quad_RF_LC(4) = (/ &
+    -2*charge*V_st / (mass*r_0**2 ) + 0.5*wz2,    &
+    +2*charge*V_st / (mass*r_0**2 ) + 0.5*wz2,    &
+     2*charge*V_rf / (mass*r_0**2 )             ,    &
+     -wz2                                               /)
 
 !***********************************************************************
 !                   Trap parameters:
@@ -109,7 +231,7 @@ double precision  , parameter :: eta_mass = eta/mass
 
 
 !~ double precision , parameter :: eta = 1.5d-21  ![kg/s] friction  coefficient
-double precision  :: alphaL,betaL,time00, time_a
+double precision  :: alphaL,betaL,time00, time_a, t_act
 !***********************************************************************
 !                       ! Global variables:
 !***********************************************************************
@@ -251,6 +373,7 @@ subroutine update_positions()
 implicit none
 integer :: im
 !-----------------------------------------------------------------------
+	t_act = t_act + dt
 !   One time step
     !$omp parallel default(none) private(im) shared (r_z,v_z,r_r,v_r,r_y,v_y) firstprivate(ia,ib)
     im = omp_get_thread_num()+1
@@ -269,14 +392,29 @@ integer :: i, im,j
 double precision :: rji(3)
 double precision :: r2inv
 double precision, parameter :: softening = 1.00D-20
+! --- Added from RF_relax by Adrien 2020 07 06 ---
+double precision, parameter :: eta_gauss = 1.0d0 / (4.0d0*(dsqrt(10.0d0) + 5.0d0 ))
+double precision, parameter :: cte_gauss = -1/(2*eta_gauss*L**2)
+double precision    :: cte_aux(2)
+double precision    :: cos_jj
+    cos_jj = dcos(t_act*Omega)
+    cte_aux(1) = a_cte_Quad_RF_LC(1) + a_cte_Quad_RF_LC(3)*cos_jj
+    cte_aux(2) = a_cte_Quad_RF_LC(2) - a_cte_Quad_RF_LC(3)*cos_jj
+! -------------------------------------------------
     !$omp parallel default(none) &
-    !$omp private(im, i,j,rji,r2inv) &
+    !$omp private(im, i,j,rji,r2inv,cte_aux) &
     !$omp firstprivate(ia, ib, r_z, r_r,r_y) &
     !$omp shared(a2_z,a2_r,a2_y)
     im = omp_get_thread_num() + 1
-    a2_r(ia(im): ib(im)) = - wr2*r_r(ia(im): ib(im))
-    a2_y(ia(im): ib(im)) = - wy2*r_y(ia(im): ib(im))
-    a2_z(ia(im): ib(im)) = - wz2*r_z(ia(im): ib(im))
+! RF contribution to acceleration
+    a2_r(ia(im):ib(im)) = a2_r(ia(im):ib(im)) + cte_aux(1) * r_r(ia(im):ib(im))
+    a2_y(ia(im):ib(im)) = a2_y(ia(im):ib(im)) + cte_aux(2) * r_y(ia(im):ib(im))
+    a2_z(ia(im):ib(im)) = a2_z(ia(im):ib(im)) -     wz2 * r_z(ia(im):ib(im))*exp(cte_gauss * r_z(ia(im):ib(im))*r_z(ia(im):ib(im)) )
+! Pseudo-pot contribution to acceleration
+	!    a2_r(ia(im): ib(im)) = - wr2*r_r(ia(im): ib(im))
+	!    a2_y(ia(im): ib(im)) = - wy2*r_y(ia(im): ib(im))
+	!    a2_z(ia(im): ib(im)) = - wz2*r_z(ia(im): ib(im))
+! Coulombian repulsion see a_Coulomb_1sp_2sp()
     do i = ia(im), ib(im)
         do j = 1, n_ions
             rji(1)  = r_z(j) - r_z(i)
@@ -372,6 +510,7 @@ double precision, parameter :: l0(3) = [50.0e-6,50.0e-6,300.0e-6];
     v_r  = 0.0d0; a1_r = 0.0d0; a2_r = 0.0d0;
     v_y  = 0.0d0; a1_y = 0.0d0; a2_y = 0.0d0;
 
+	t_act = 0
 
 !~     print*, r_r(1:5)
 !~     print*, r_z(1:5)
@@ -489,7 +628,7 @@ character(len=50 )  :: str_T,str_F
         str_T = '_T'//trim(adjustl(str_T))//'mK'
     endif
     ! Friction coefficient
-    write(str_F,"(d8.2)") abs(eta)
+    write(str_F,"(d9.2)") abs(eta)
     str_F = '_F'//trim(adjustl(str_F))//'Kg_s'
 
     ! Names used by the "from scrath" subroutine
@@ -528,6 +667,8 @@ character(len=130)  :: str_file_trj_tmp
     print*, 'Saving Final positions to:', trim(str_file_trj_tmp)
    
     open(unit = 11, status='replace',file=trim(str_file_trj_tmp),form='unformatted')  ! create a new file, or overwrite an existing one
+        write(11,'(i16)') j_end ! Adrien 20200706
+        write(11,'(e16.9)') t_act ! Adrien 20200706
         write(11) n_ions
         write(11) dt
 

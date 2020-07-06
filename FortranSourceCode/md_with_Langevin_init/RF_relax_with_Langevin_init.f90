@@ -514,7 +514,6 @@ integer                 :: brng, method ,seed0, i, j_store_aux
         stop
     endif
 	call prepare_cold_ion_cloud_from_file()
-	enddo
 !dir$ endif
 
 !dir$ if(Simu_type .eq. 4)
@@ -2006,7 +2005,7 @@ end subroutine
 
 subroutine init_from_file_Langevin()
 implicit none
-integer :: n_ions_aux
+integer :: n_ions_aux, jend
 double precision :: dt_aux
 
 ! xva_3D_Harmo_N1024_T500uK_F0.15D-20Kg_s_4
@@ -2016,6 +2015,8 @@ double precision :: dt_aux
     t_next_periode = dt0
 
     open(unit = 10, status='old', file=trim(adjustl(str_file_to_load))//'.bin', form='unformatted')  ! open an existing file
+        read(10,'(i16)')    jend  ! Adrien 20200706
+        read(10,'(e16.9)')  t_act ! Adrien 20200706
         read(10) n_ions_aux
         
         if (n_ions1 .ne. n_ions_aux) then
