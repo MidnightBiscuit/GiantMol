@@ -40,7 +40,7 @@ double precision , parameter :: qe     = 1.60217646d-19   ![C = sA] Elementary C
 double precision , parameter :: kb     = 1.3806503d-23    ![m2 kg s-2] Boltzman cte
 double precision , parameter :: ke     = 8.987551787d9    ![N m2 C-2] Coulomb cte =  1 / (4*pi*eps0)
 !***********************************************************************
-integer          , parameter :: ni   = 8 !number of threads
+integer          , parameter :: ni   = 6 !number of threads
 
 !***********************************************************************
 !                   Particles parameters:
@@ -63,11 +63,11 @@ double precision , parameter :: alpha = ke*charge*charge / mass
 !~ double precision , parameter :: wy2  = (2*pi*800e3)**2
 !~ double precision , parameter :: wz2  = (2*pi*400e3)**2
 
-integer          , parameter :: n_ions    = 1024
+integer          , parameter :: n_ions    = 24
 ! Automatiser les ia et ib
 ! omp parallel quelle différence variables private, shared, firstprivate ?
-integer          , parameter :: ia(ni)=[1,129,257,385,513,641,769,897];
-integer          , parameter :: ib(ni)=[128,256,384,512,640,768,896,1024];
+integer          , parameter :: ia(ni)=[1,5,9,13,17,21];
+integer          , parameter :: ib(ni)=[4,8,12,16,20,24];
 
 
 !***********************************************************************
@@ -243,6 +243,10 @@ double precision   , dimension(n_ions)   ::  r_z, r_r, r_y,   &
                                              Z0_z, Z1_z, &
                                              Z0_y, Z1_y
 
+! Adrien 2020 07 08
+double precision   , dimension(n_ions,3) :: v_rf_avg
+double precision   , dimension(3)          :: T_CM__LC,T_aux_LC
+
 !~ integer, dimension(ni)   :: ia , ib
 character(len=150)       :: str_file_aux
 !***********************************************************************
@@ -272,6 +276,7 @@ double precision  , parameter ::    cte13   = cte1 + cte3 !ac
 !***********************************************************************
 
 integer :: j_start, jj, j_end, j_save, j_save_aux
+integer :: iRF(3)
 
 double precision, allocatable, dimension(:,:) ::  save_Temp
 !~ double precision, allocatable, dimension(:,:) ::  save_trj
@@ -314,7 +319,7 @@ method=VSL_RNG_METHOD_GAUSSIAN_ICDF
     print*, '        From Zero and Save to file'
     print*, '***********************************************************'
     jj = int(i_free__fly/float(j_save_next))
-    allocate(save_Temp(3,jj))
+    allocate(save_Temp(jj,0:6))
 
     call initialize_ions()
     
@@ -341,15 +346,9 @@ implicit none
         call update_positions()
         call update_accelerations()
         call update_velocities()
-        if (j_save_aux.eq.j_save_next) then
-            j_save_aux = 1
-            j_save = j_save + 1
-            save_Temp(1,j_save) = sum(v_z*v_z)
-            save_Temp(2,j_save) = sum(v_r*v_r)
-            save_Temp(3,j_save) = sum(v_y*v_y)
-        else
-            j_save_aux = j_save_aux + 1
-        endif
+        call Measure_of_Temperature()
+        call Check_save_temp()
+
     enddo
     call final_time_step()
     j_start = jj;
@@ -402,8 +401,8 @@ double precision    :: cos_jj
     cte_aux(2) = a_cte_Quad_RF_LC(2) - a_cte_Quad_RF_LC(3)*cos_jj
 ! -------------------------------------------------
     !$omp parallel default(none) &
-    !$omp private(im, i,j,rji,r2inv,cte_aux) &
-    !$omp firstprivate(ia, ib, r_z, r_r,r_y) &
+    !$omp private(im, i,j,rji,r2inv) &
+    !$omp firstprivate(ia, ib, r_z, r_r,r_y,cte_aux) &
     !$omp shared(a2_z,a2_r,a2_y)
     im = omp_get_thread_num() + 1
 ! RF contribution to acceleration
@@ -461,6 +460,49 @@ real ( kind = 8 ) :: A4, A5
     !$omp end parallel
 end subroutine
 
+subroutine Measure_of_Temperature()
+implicit none
+integer :: i
+    v_rf_avg(:,1) = v_rf_avg(:,1) + v_r;
+    v_rf_avg(:,2) = v_rf_avg(:,2) + v_y;
+    v_rf_avg(:,3) = v_rf_avg(:,3) + v_z;
+
+    do i = 1,3
+        iRF(i) = iRF(i) + 1; ! iRF initialized inside initialize_ions()
+        if (iRF(i) == j_save_next) then
+            iRF(i)           = 0;
+
+            T_CM__LC(i)      = sum(v_rf_avg(:n_ions ,i) ) **2
+            T_aux_LC(i)      = sum(v_rf_avg(:n_ions ,i)**2)
+            
+            v_rf_avg(:,i) = 0.0d0
+        endif
+    enddo
+end subroutine
+
+subroutine Check_save_temp()
+implicit none
+!~         if (j_save_aux.eq.j_save_next) then
+!~             j_save_aux = 1
+!~             j_save = j_save + 1
+!~             save_Temp(1,j_save) = sum(v_z*v_z)
+!~             save_Temp(2,j_save) = sum(v_r*v_r)
+!~             save_Temp(3,j_save) = sum(v_y*v_y)
+!~         else
+!~             j_save_aux = j_save_aux + 1
+!~         endif
+    if (j_save_aux == j_save_next) then
+        j_save_aux = 0;
+        j_save = j_save + 1
+
+        save_Temp(j_save, 0 )    = t_act
+        save_Temp(j_save, 1 :3 ) = T_CM__LC
+        save_Temp(j_save, 4 :6 ) = T_aux_LC
+    else
+        j_save_aux = j_save_aux + 1;
+    endif
+endsubroutine
+
 subroutine final_time_step()
 implicit none
     call update_positions();
@@ -511,6 +553,7 @@ double precision, parameter :: l0(3) = [50.0e-6,50.0e-6,300.0e-6];
     v_y  = 0.0d0; a1_y = 0.0d0; a2_y = 0.0d0;
 
 	t_act = 0
+	iRF(1) = 0; iRF(2) = floor(j_save_next/2.0); iRF(3) = 0;
 
 !~     print*, r_r(1:5)
 !~     print*, r_z(1:5)
@@ -655,8 +698,13 @@ character(len=130)  :: str_file_trj_tmp
         write(11) eta
         write(11) Temperature
 
-        write(11) save_Temp(:,1:j_save)
+        write(11) save_Temp(:,0),&
+				  save_Temp(:,1:3)*mass / (kb*n_ions),&
+				  save_Temp(:,4:6)*mass / (kb*n_ions)
+				  
     close(11)
+    deallocate(save_Temp)
+    
 end subroutine
 
 subroutine save_xva_to_file()
@@ -669,6 +717,7 @@ character(len=130)  :: str_file_trj_tmp
     open(unit = 11, status='replace',file=trim(str_file_trj_tmp),form='unformatted')  ! create a new file, or overwrite an existing one
         write(11) j_end ! Adrien 20200706
         write(11) t_act ! Adrien 20200706
+        write(11) iRF   ! Adrien 20200708
         write(11) n_ions
         write(11) dt
 
@@ -686,6 +735,8 @@ character(len=130)  :: str_file_trj_tmp
         write(11) v_y
         write(11) a1_y
         write(11) a2_y
+        
+        write(11) v_rf_avg
     close(11)
 end subroutine
 

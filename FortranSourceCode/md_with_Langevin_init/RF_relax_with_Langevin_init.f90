@@ -57,7 +57,7 @@ integer, parameter                   :: n_sp   = 2
 
 
 
-integer, parameter :: n_ions1 = 1024
+integer, parameter :: n_ions1 = 24
 !dir$ if ( HCI .eq. 0 )
 integer, parameter, dimension(n_sp)  :: n_ions = (/ n_ions1 , 0 /)
 !dir$ else
@@ -297,7 +297,7 @@ double precision   , parameter :: z0_HC = 1.5d-3
 !***********************************************************************
 !                   Integration constants:
 !***********************************************************************
-integer, parameter :: ni   = 8 !number of threads
+integer, parameter :: ni   = 6 !number of threads
 integer, parameter :: n_dt = 100
 double precision   , parameter :: dt0  = pi2 / (n_dt*Omega) ! not normalised
 !~ double precision   , parameter :: dt   = pi2 / n_dt ! normalised
@@ -513,7 +513,10 @@ integer                 :: brng, method ,seed0, i, j_store_aux
         print*, '  - Stopping code'
         stop
     endif
-	call prepare_cold_ion_cloud_from_file()
+	do i = i_stats0, i_stats
+		call create_files_names( )
+		call prepare_cold_ion_cloud_from_file()
+	enddo
 !dir$ endif
 
 !dir$ if(Simu_type .eq. 4)
@@ -539,24 +542,24 @@ integer                 :: brng, method ,seed0, i, j_store_aux
         call create_files_names( )
         call inject_ions_HC()
 
-        save_info(1) = r_x(n_cut(3))
-        save_info(2) = r_y(n_cut(3))
-        save_info(3) = r_z(n_cut(3))
-        save_info(4) = v_x(n_cut(3))
-        save_info(5) = v_y(n_cut(3))
-        save_info(6) = v_z(n_cut(3))
-        print*,'Before vz', save_info(3), save_info(6)
+        save_info(i,1) = r_x(n_cut(3))
+        save_info(i,2) = r_y(n_cut(3))
+        save_info(i,3) = r_z(n_cut(3))
+        save_info(i,4) = v_x(n_cut(3))
+        save_info(i,5) = v_y(n_cut(3))
+        save_info(i,6) = v_z(n_cut(3))
+        print*,'Before vz', save_info(i,3), save_info(i,6)
         
         call inject_ion_simu_laser()
 
-        save_info(7) = r_x(n_cut(3))
-        save_info(8) = r_y(n_cut(3))
-        save_info(9) = r_z(n_cut(3))
-        save_info(10) = v_x(n_cut(3))
-        save_info(11) = v_y(n_cut(3))
-        save_info(12) = v_z(n_cut(3))
-        save_info(13) = t_act - time0_HCI
-        print*,'After vz', save_info(9), save_info(12)
+        save_info(i,7) = r_x(n_cut(3))
+        save_info(i,8) = r_y(n_cut(3))
+        save_info(i,9) = r_z(n_cut(3))
+        save_info(i,10) = v_x(n_cut(3))
+        save_info(i,11) = v_y(n_cut(3))
+        save_info(i,12) = v_z(n_cut(3))
+        save_info(i,13) = t_act - time0_HCI
+        print*,'After vz', save_info(i,9), save_info(i,12)
         print*, 'Time of crossing [us]:', (t_act - time0_HCI)*1.0e6
 
     open(15, file=trim(adjustl(str_file_xva))//'.dat', status='replace', access='sequential', action='write')
@@ -1071,7 +1074,7 @@ double precision :: r_temp
 !~     print*, 'total_ion_lost0', total_ion_lost0
 end subroutine
 
-subroutine Measure_of_Temperature()
+subroutine Measure_of_Temperature() ! Adrien 2020 07 08
 implicit none
 integer :: i
     v_rf_avg(total_ion_lost0:,1) = v_rf_avg(total_ion_lost0:,1) + v_x(total_ion_lost0:);
@@ -2017,6 +2020,7 @@ double precision :: dt_aux
     open(unit = 10, status='old', file=trim(adjustl(str_file_to_load))//'.bin', form='unformatted')  ! open an existing file
         read(10)  jend  ! Adrien 20200706
         read(10)  t_act ! Adrien 20200706
+        read(10)  iRF   ! Adrien 20200708
         read(10)  n_ions_aux
         
         if (n_ions1 .ne. n_ions_aux) then
@@ -2042,9 +2046,10 @@ double precision :: dt_aux
         read(10) a1_y
         read(10) a2_y
         
+        read(10) v_rf_avg
+        
     close(10)
 
-    v_rf_avg = 0.0d0
 end subroutine
 
 subroutine init_from_file_post_injec()
@@ -2216,7 +2221,7 @@ character(len=20 )   :: str_trap_aux,str_stat
     str_trap_aux = 'SimuType2_'//trim(adjustl(str_stat))
 !dir$ elseif(Simu_type .eq. 3)
 ! Modified by Adrien 2020 07 01 !
-	str_file_to_load = 'xva_3D_Harmo_N1024_T500uK_F0.15D-20Kg_s_4'
+	str_file_to_load = 'xva_3D_Harmo_N0024_T500uK_F0.15D-20Kg_s_4'
 	write(str_stat,"(I2.2)") i
 	str_trap_aux = 'SimuType0_'//trim(adjustl(str_stat))
 !dir$ elseif(Simu_type .eq. 4)

@@ -795,7 +795,7 @@ def cloud_size(address,onlyfiles, **kwargs):
         r_LC_clip = [x_LC_clip,y_LC_clip,z_LC_clip]
         dim_nu = [max(r_LC_clip[l][:]) for l in range(3)]
     except:
-		r_LC_clip = None
+        r_LC_clip = None
         dim_nu = None
             
     return r_LC_clip, dim_nu
