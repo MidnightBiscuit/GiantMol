@@ -667,8 +667,8 @@ character(len=130)  :: str_file_trj_tmp
     print*, 'Saving Final positions to:', trim(str_file_trj_tmp)
    
     open(unit = 11, status='replace',file=trim(str_file_trj_tmp),form='unformatted')  ! create a new file, or overwrite an existing one
-        write(11,'(i16)') j_end ! Adrien 20200706
-        write(11,'(e16.9)') t_act ! Adrien 20200706
+        write(11) j_end ! Adrien 20200706
+        write(11) t_act ! Adrien 20200706
         write(11) n_ions
         write(11) dt
 

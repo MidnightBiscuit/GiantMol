@@ -2015,9 +2015,9 @@ double precision :: dt_aux
     t_next_periode = dt0
 
     open(unit = 10, status='old', file=trim(adjustl(str_file_to_load))//'.bin', form='unformatted')  ! open an existing file
-        read(10,'(i16)')    jend  ! Adrien 20200706
-        read(10,'(e16.9)')  t_act ! Adrien 20200706
-        read(10) n_ions_aux
+        read(10)  jend  ! Adrien 20200706
+        read(10)  t_act ! Adrien 20200706
+        read(10)  n_ions_aux
         
         if (n_ions1 .ne. n_ions_aux) then
             print*, 'Problem: ions in file and in code different'
