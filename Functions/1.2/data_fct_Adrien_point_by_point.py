@@ -210,23 +210,13 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
     return temps, temperature, fluo
 
 def plot_T_and_PM_Inje(file_dir2,file_name,**kwargs):
-    
-    # ~ xlim1 = (-0.1,6)
-    # ~ ylim1 = (0.5*1e-3,5e3)
-    # ~ ylim2 = (-2,120)
-            
-    xlim1 = kwargs.get('xlim1', (-0.1,6))
-    ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
-    ylim2 = kwargs.get('ylim2', (-2,50))
-    
+   
     i_aux = file_name.find('_N')
-    # file0 = 'Temp_3D_Harmo'+ file_name[i_aux:]
     file2 = 'SimuType4_01' + file_name[i_aux:]
 
     tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'/Temp_'+file2+'50eV')
 
     T_variation  = mean(T_aux2[-25:,0]) + mean(T_aux2[-25:,1]) + mean(T_aux2[-25:,2])
-            
 
     # Auxiliary arrays:
     t_aux1 = array([tt2[ 0],tt2[ 0]])
@@ -236,6 +226,17 @@ def plot_T_and_PM_Inje(file_dir2,file_name,**kwargs):
     y2_aux = array([0 ,50 ])
     
     return tt2, T_CM2, T_aux2, PM2
+
+def plot_T_and_PM_Evol(file_dir2,file_name,**kwargs):
+
+    i_aux = file_name.find('_N')
+    file3 = 'SimuType2_01' + file_name[i_aux:]
+
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3+'50eV')
+
+    T_variation  = mean(T_aux3[-100:,0]) + mean(T_aux3[-100:,1]) + mean(T_aux3[-100:,2])
+        
+    return tt3, T_CM3, T_aux3, PM3
 
 def plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs):
     
