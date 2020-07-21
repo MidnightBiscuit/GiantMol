@@ -209,6 +209,30 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
         
     return temps, temperature, fluo
 
+def plot_T_and_PM_Init(file_dir2,file_name,**kwargs):
+    
+    # ~ xlim1 = (-0.1,6)
+    # ~ ylim1 = (0.5*1e-3,5e3)
+    # ~ ylim2 = (-2,120)
+            
+    xlim1 = kwargs.get('xlim1', (-0.1,6))
+    ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
+    ylim2 = kwargs.get('ylim2', (-2,50))
+    
+    i_aux = file_name.find('_N')
+    # file0 = 'Temp_3D_Harmo'+ file_name[i_aux:]
+    file1 = 'SimuType0'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
+
+    # tt0, T_CM0, T_aux0, PM0 = load_T_and_PM_simu(file_dir2+file0)
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
+            
+
+    # Auxiliary arrays:
+    t_aux1 = array([tt1[-1],tt1[-1]])
+    y1_aux = array([1.0e-3 ,1.0e-1 ])
+        
+    return tt1, T_CM1, T_aux1, PM1
+
 def plot_T_and_PM_Inje(file_dir2,file_name,**kwargs):
    
     i_aux = file_name.find('_N')
@@ -608,34 +632,41 @@ def simu_conditions(all_subdir, myslashpos, slashcond,filename):
     # All points of simulation
     all_points = [point[myslashpos[slashcond] + 1:myslashpos[slashcond + 1]] for point in all_subdir]
     all_points = list(dict.fromkeys(all_points))
+    print(all_points)
 
     # Name of the conditions
     condition_separator_position = [m.start() for m in re.finditer('_', all_points[0])]
-    condition_name = [[] for k in range(len(condition_separator_position) + 1)]
+    if len(condition_separator_position) == 0:
+        condition_name = [re.sub('[0-9]+','',all_points[0])]
+        condition_numb = [re.sub('[a-zA-Z]','',kk) for _,kk in enumerate(all_points)]
+        points_and_coord = [k for j,k in enumerate(all_points)]
+        points_and_coord = {y: condition_numb[x] for x,y in enumerate(all_points)}
 
-    for k, m in enumerate(condition_separator_position):
-        condition_name[k] = re.sub('[0-9]+', '', all_points[0][m - condition_separator_position[0]:m])
-    condition_name[-1] = re.sub('[0-9]+', '', all_points[0][m + 1:])
+    else:
+        condition_name = [[] for k in range(len(condition_separator_position) + 1)]
+        for k, m in enumerate(condition_separator_position):
+            condition_name[k] = re.sub('[0-9]+', '', all_points[0][m - condition_separator_position[0]:m])
+        condition_name[-1] = re.sub('[0-9]+', '', all_points[0][m + 1:])
+        
+        # Put together points with their coordinates        
+        points_and_coord = {}
+        for k,pt in enumerate(all_points):
+            print(f'{k:03.0f}','>',pt)
+            w = condition_separator_position[0]
+            temp = []
+            for i,j in enumerate(condition_name):
+                temp_cond_pos = pt.find(j)
+                try:
+                    temp_sep_pos = condition_separator_position[i]
+                    temp_cond_num = re.sub(j,'',pt[temp_cond_pos:temp_sep_pos])
+                except:
+                    temp_cond_num = re.sub(j,'',pt[temp_cond_pos:])
+                temp.append(temp_cond_num)
+            points_and_coord[pt] = temp
+        # {'DC01_RF08': ['01', '08'], 'DC01_RF09': ['01', '09'], 'DC01_RF10': ['01', '10'], ... }
+
     print('> condition names',condition_name)
-
     print('> number of points',len(all_points))
-
-    # Put together points with their coordinates
-    points_and_coord = {}
-    for k,pt in enumerate(all_points):
-        print(f'{k:03.0f}','>',pt)
-        w = condition_separator_position[0]
-        temp = []
-        for i,j in enumerate(condition_name):
-            temp_cond_pos = pt.find(j)
-            try:
-                temp_sep_pos = condition_separator_position[i]
-                temp_cond_num = re.sub(j,'',pt[temp_cond_pos:temp_sep_pos])
-            except:
-                temp_cond_num = re.sub(j,'',pt[temp_cond_pos:])
-            temp.append(temp_cond_num)
-        points_and_coord[pt] = temp
-    # {'DC01_RF08': ['01', '08'], 'DC01_RF09': ['01', '09'], 'DC01_RF10': ['01', '10'], ... }
 
     # Conditions de la simulation
     nions_pos = filename.find('_N')            # position nombre d'ions dans filename
@@ -753,6 +784,105 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
     print("Time elapsed: ", t1/60, 'm') # CPU seconds elapsed (floating point)
     
     data_name = [data_address, data0, data2, data4]
+    PMandT = [PMvar, Tvar]
+    Gmol_data = [deltaEc, deltaEcRel, SNR, t_c]
+    
+    return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
+    
+def data_retrieve_onefile(all_subdir,points_and_coord, condition_parameters, slash_cfg):
+    
+    # Récupérer les données pour chaque simu
+    # Exécution en quelques minutes
+    
+    # data0, data2, data4 : nom des fichiers de fluo et température
+    # PMvar, Tvar         : variation de fluo et température entre passage Gmol et fin de simu
+    # deltaEc, deltaEcRel : variation énergie GMol
+    # t_c                 : temps de vol de la GMol entre son apparition (z=-1.5mm) et sa disparition (z=1.5mm)
+    # r_LC, v_LC, a_LC    : position, vitesse, accélération des ions Ca+
+    # r_LC_clip           : même chose mais en dégageant les ions perdus et beaucoup trop loin (hors pièges)
+    # dim_nu              : dimensions x, y et z, nuage Ca+ basé sur r_LC_clip
+
+    myslashpos = slash_cfg[0]
+    slashcond = slash_cfg[1]
+
+    # determining number of elements on each repetition
+    num_runs = [runs[myslashpos[slashcond+1]+1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
+    num_runs = list(dict.fromkeys(num_runs))
+
+    # number of repetitions
+    print('> Points |',len(points_and_coord))
+    print('> Simulations pour chaque point |', num_runs)
+    
+    data0 = [[] for i in range(len(points_and_coord))] # file path to SimuType0
+    data_address = [[] for i in range(len(points_and_coord))]
+
+    # Variables à deux coordonnées : [point, try]
+    shapevar = (len(points_and_coord),len(num_runs))
+
+    PMvar = np.zeros(shapevar)
+    Tvar = np.zeros(shapevar)
+    deltaEc = np.zeros(shapevar)
+    deltaEcRel = np.zeros(shapevar)
+    SNR = np.zeros(shapevar)
+    t_c = np.zeros(shapevar)
+    # r_LC_clip = [[[] for i in range(elem_2)] for j in range(elem_0)]
+    dim_nu=zeros((len(points_and_coord),len(num_runs),3))
+
+    t0 = time.clock()
+    print("Hello")
+
+    # write variables
+
+    # all files to stat
+    # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
+    
+    for k, address in enumerate(all_subdir):
+
+    # in-loop variables
+        pnt = k // len(num_runs)  # actual point
+        rep = k  % len(num_runs)          # actual repetition
+
+        # get only .dat files in each simulation directory
+        onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
+        # build path file
+        data0[pnt].append('{}/{}'.format(address,sort(onlyfiles)[0].strip('.dat')))
+        data_address[pnt].append(address)
+
+        # load fluorescence and T
+        try:
+            PMvar[pnt][rep] = find_PM_variation_FinalT(address,sort(onlyfiles)[0].strip('.dat'))[0]
+            Tvar[pnt][rep]  = find_PM_variation_FinalT(address,sort(onlyfiles)[0].strip('.dat'))[1]
+            SNR[pnt][rep] = find_PM_variation_FinalT(address,sort(onlyfiles)[0].strip('.dat'))[2]
+        except:
+            PMvar[pnt][rep] = None
+            Tvar[pnt][rep]  = None
+            SNR[pnt][rep]   = None
+
+        # load cloud size before injection
+        try:
+            my_file = '{}/xva{}'.format(address,sort(onlyfiles)[0].strip('.dat')[4:])
+            r_LC,v_LC,a_LC = load_xyz_init_bin_DP(my_file)        
+
+            # filter lost ions
+            x_LC_clip = [r_LC[0,x] for x in range(len(r_LC[0,:])) if abs(r_LC[0,x]) <10e-2] #6e-2
+            y_LC_clip = [r_LC[1,x] for x in range(len(r_LC[1,:])) if abs(r_LC[1,x]) <10e-2]
+            z_LC_clip = [r_LC[2,x] for x in range(len(r_LC[2,:])) if abs(r_LC[2,x]) <1e-0]
+    #         r_LC_clip[k][j][:] = [x_LC_clip,y_LC_clip,z_LC_clip]
+            r_LC_clip = [x_LC_clip,y_LC_clip,z_LC_clip]
+            dim_nu[pnt][rep] = [max(r_LC_clip[l][:]) for l in range(3)]
+        except:
+            dim_nu[pnt][rep] = None
+        
+        if not(rep % len(num_runs)):
+            print( "Point n°", pnt )
+        
+        print(f'{pnt:02}','-',f'{rep:02}',' > ',data0[pnt][rep])
+
+    t1 = time.clock() - t0
+    print("Time elapsed: ", t1, 's') # CPU seconds elapsed (floating point)
+    print("Time elapsed: ", t1/60, 'm') # CPU seconds elapsed (floating point)
+    
+    data_name = [data_address, data0]
     PMandT = [PMvar, Tvar]
     Gmol_data = [deltaEc, deltaEcRel, SNR, t_c]
     
