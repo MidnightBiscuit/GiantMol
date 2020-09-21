@@ -107,15 +107,16 @@ def load_xyz_init_bin_DP(str_load):
     fid.close
     aux = reshape(aux, (12, n_ions),order='F')
     r_LC = 1.e3*aux[0:3,0:n_ions1]
-    v_LC = 1.e3*aux[3:6,0:n_ions1]
+    v_LC = aux[3:6,0:n_ions1]
 
     #xyz = 1.e3*aux[0:3,:]
-    a_LC = 1.e3*aux[6:9,0:n_ions1]
+    a_LC = aux[6:9,0:n_ions1]
+    v_LC_avg = aux[9:12,0:n_ions1]
 
-    return r_LC,v_LC,a_LC
+    return r_LC,v_LC,a_LC,v_LC_avg
 
 def plot_XYZ(file_name,fig_name='2',fig_title='XYZ'):
-    r_LC,v_LC,a_LC = load_xyz_init_bin_DP(file_name)
+    r_LC,v_LC,a_LC,v_LC_avg = load_xyz_init_bin_DP(file_name)
     figure(fig_name); clf()
     title(fig_title)
     subplot(211,aspect=1.0)
@@ -208,6 +209,82 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
     temperature = [T_aux, T_variation, T_CM]
         
     return temps, temperature, fluo
+    
+def plot_T_and_PM_InitQ_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs):
+    
+    # ~ xlim1 = (-0.1,6)
+    # ~ ylim1 = (0.5*1e-3,5e3)
+    # ~ ylim2 = (-2,120)
+            
+    xlim1 = kwargs.get('xlim1', (-0.1,6))
+    ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
+    ylim2 = kwargs.get('ylim2', (-2,50))
+    
+    i_aux = file_name.find('_N')
+    # file0 = 'Temp_3D_Harmo'+ file_name[i_aux:]
+    file1 = 'SimuTypeQ'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
+    file2 = 'SimuType4_01' + file_name[i_aux:]
+    file3 = 'SimuType2_01' + file_name[i_aux:]
+
+    # tt0, T_CM0, T_aux0, PM0 = load_T_and_PM_simu(file_dir2+file0)
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
+    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3+'50eV')
+
+    aux = mean(PM1[-100:])
+    PM_variation = ( aux - mean(PM3[-100:]) ) / aux
+    T_variation  = mean(T_aux3[-100:,0]) + mean(T_aux3[-100:,1]) + mean(T_aux3[-100:,2])
+            
+
+    # Auxiliary arrays:
+    t_aux1 = array([tt2[ 0],tt2[ 0]])
+    t_aux2 = array([tt2[-1],tt2[-1]])
+    y1_aux = array([1.0e-3 ,1.0e-1 ])
+#     y2_aux = array([0 ,20 ])
+    y2_aux = array([0 ,50 ])
+
+    tt    = concatenate( (   tt1,   tt2,   tt3) )
+    T_CM  = concatenate( (T_CM1,T_CM2,T_CM3) )
+    T_aux = concatenate( (T_aux1,T_aux2,T_aux3) )
+    PM    = concatenate( (PM1,PM2,PM3) )
+    SNR = np.abs( aux - mean(PM3[-100:]) )/np.sqrt(aux) # Sig-to-Noi ratio considering Poisson noise
+    
+    if flag_plot == 1 :
+        #fig_name = file_name[-9:]
+        fig = figure(fig_name); clf()
+        ax1 = subplot(211)
+        semilogy(tt*1.e3,T_aux[:,0], label='Tx')
+        semilogy(tt*1.e3,T_aux[:,1], label='Ty')
+        semilogy(tt*1.e3,T_aux[:,2], label='Tz')
+        semilogy(t_aux1*1.e3,y1_aux,'r')
+        semilogy(t_aux2*1.e3,y1_aux,'r')
+        ax1.grid()
+
+        legend()
+        # ~ xlabel('time[ms]')
+        # ~ ylabel('T[K]')
+        plt.setp(ax1.get_xticklabels(),visible=False)
+
+        ax2 = subplot(212,sharex=ax1)
+        plot(tt*1.e3,PM[:])
+        plot(t_aux1*1.e3,y2_aux,'r')
+        plot(t_aux2*1.e3,y2_aux,'r')
+        ax2.grid()
+        
+        xlabel('time[ms]')
+        ylabel('Counts')
+                               
+        ax1.set_xlim(xlim1)
+        ax1.set_ylim(ylim1)
+        ax2.set_ylim(ylim2)
+        plt.tight_layout()
+        subplots_adjust(hspace=0.015)
+        
+    temps = [tt,t_aux1, t_aux2]
+    fluo = [PM, PM_variation, SNR]
+    temperature = [T_aux, T_variation, T_CM]
+        
+    return temps, temperature, fluo
 
 def plot_T_and_PM_Init(file_dir2,file_name,**kwargs):
     
@@ -222,6 +299,30 @@ def plot_T_and_PM_Init(file_dir2,file_name,**kwargs):
     i_aux = file_name.find('_N')
     # file0 = 'Temp_3D_Harmo'+ file_name[i_aux:]
     file1 = 'SimuType0'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
+
+    # tt0, T_CM0, T_aux0, PM0 = load_T_and_PM_simu(file_dir2+file0)
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
+            
+
+    # Auxiliary arrays:
+    t_aux1 = array([tt1[-1],tt1[-1]])
+    y1_aux = array([1.0e-3 ,1.0e-1 ])
+        
+    return tt1, T_CM1, T_aux1, PM1
+
+def plot_T_and_PM_Quen(file_dir2,file_name,**kwargs):
+    
+    # ~ xlim1 = (-0.1,6)
+    # ~ ylim1 = (0.5*1e-3,5e3)
+    # ~ ylim2 = (-2,120)
+            
+    xlim1 = kwargs.get('xlim1', (-0.1,6))
+    ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
+    ylim2 = kwargs.get('ylim2', (-2,50))
+    
+    i_aux = file_name.find('_N')
+    # file0 = 'Temp_3D_Harmo'+ file_name[i_aux:]
+    file1 = 'SimuTypeQ'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
 
     # tt0, T_CM0, T_aux0, PM0 = load_T_and_PM_simu(file_dir2+file0)
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
@@ -434,7 +535,7 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
 
 def find_PM_variation_FinalT(file_dir2,file_name):
     i_aux = file_name.find('_N')+1
-    file1 = 'SimuType0_{}'.format(file_name[i_aux:].strip('50eV.dat'))    # for N=1024
+    file1 = 'SimuTypeQ_{}'.format(file_name[i_aux:].strip('50eV.dat'))    # for N=1024
     file3 = 'SimuType2_01_{}50eV'.format(file_name[i_aux:].strip('50eV.dat'))
     
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'/Temp_'+file1)
@@ -558,7 +659,7 @@ def load_gui(filter_nocomplete):
     # print(myslashpos[6]) # choose the right level
 
     if 'home' in file_path:
-        if 'Hobitton' in file_path :
+        if 'Hobitton' or 'Rivendel' in file_path :
             slashcond = 5 # the slash number just before runs (after date)
         else:
             slashcond = 6 # the slash number just before runs (after date)
@@ -705,9 +806,9 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
     print('> Points |',len(points_and_coord))
     print('> Simulations pour chaque point |', num_runs)
     
-    data0 = [[] for i in range(len(points_and_coord))] # file path to SimuType0
-    data2 = [[] for i in range(len(points_and_coord))] # file path to SimuType2
-    data4 = [[] for i in range(len(points_and_coord))] # file path to SimuType4
+    data2 = [[] for i in range(len(points_and_coord))] # file path to SimuType0
+    data4 = [[] for i in range(len(points_and_coord))] # file path to SimuType2
+    data0 = [[] for i in range(len(points_and_coord))] # file path to SimuType4
     data_address = [[] for i in range(len(points_and_coord))]
 
     # Variables à deux coordonnées : [point, try]
@@ -739,30 +840,35 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
         # get only .dat files in each simulation directory
         onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
         # build path file
-        data0[pnt].append('{}/{}'.format(address,sort(onlyfiles)[0].strip('.dat')))
-        data2[pnt].append('{}/{}'.format(address,sort(onlyfiles)[1].strip('.dat')))
-        data4[pnt].append('{}/{}'.format(address,sort(onlyfiles)[2].strip('.dat')))
+        data2[pnt].append('{}/{}'.format(address,sort(onlyfiles)[0].strip('.dat')))
+        data4[pnt].append('{}/{}'.format(address,sort(onlyfiles)[1].strip('.dat')))
+        data0[pnt].append('{}/{}'.format(address,sort(onlyfiles)[2].strip('.dat')))
         data_address[pnt].append(address)
 
         # load fluorescence and T
         try:
-            PMvar[pnt][rep] = find_PM_variation_FinalT(address,sort(onlyfiles)[0].strip('.dat'))[0]
-            Tvar[pnt][rep]  = find_PM_variation_FinalT(address,sort(onlyfiles)[0].strip('.dat'))[1]
-            SNR[pnt][rep] = find_PM_variation_FinalT(address,sort(onlyfiles)[0].strip('.dat'))[2]
+            PMvar[pnt][rep] = find_PM_variation_FinalT(address,sort(onlyfiles)[2].strip('.dat'))[0]
+            Tvar[pnt][rep]  = find_PM_variation_FinalT(address,sort(onlyfiles)[2].strip('.dat'))[1]
+            SNR[pnt][rep] = find_PM_variation_FinalT(address,sort(onlyfiles)[2].strip('.dat'))[2]
         except:
             PMvar[pnt][rep] = None
             Tvar[pnt][rep]  = None
             SNR[pnt][rep]   = None
 
         # load Ec variation for GMol
-        deltaEc[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[2][4:].strip('.dat'))[2]
-        deltaEcRel[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[2][4:].strip('.dat'))[3]
-        t_c[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[2][4:].strip('.dat'))[4]
+        try:
+            deltaEc[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[1][4:].strip('.dat'))[2]
+            deltaEcRel[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[1][4:].strip('.dat'))[3]
+            t_c[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[1][4:].strip('.dat'))[4]
+        except:
+            deltaEc[pnt][rep] = None
+            deltaEcRel[pnt][rep] = None
+            t_c[pnt][rep] = None
 
         # load cloud size before injection
         try:
-            my_file = '{}/xva{}'.format(address,sort(onlyfiles)[0].strip('.dat')[4:])
-            r_LC,v_LC,a_LC = load_xyz_init_bin_DP(my_file)        
+            my_file = '{}/xva{}'.format(address,sort(onlyfiles)[2].strip('.dat')[4:])
+            r_LC,v_LC,a_LC,v_LC_avg = load_xyz_init_bin_DP(my_file)        
 
             # filter lost ions
             x_LC_clip = [r_LC[0,x] for x in range(len(r_LC[0,:])) if abs(r_LC[0,x]) <10e-2] #6e-2
@@ -778,7 +884,10 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
             print( "Point n°", pnt )
         
         print(f'{pnt:02}','-',f'{rep:02}',' > ',data0[pnt][rep])
-
+        
+        if k == len(points_and_coord)*len(num_runs) - 1:
+            break
+			
     t1 = time.clock() - t0
     print("Time elapsed: ", t1, 's') # CPU seconds elapsed (floating point)
     print("Time elapsed: ", t1/60, 'm') # CPU seconds elapsed (floating point)
@@ -861,7 +970,7 @@ def data_retrieve_onefile(all_subdir,points_and_coord, condition_parameters, sla
         # load cloud size before injection
         try:
             my_file = '{}/xva{}'.format(address,sort(onlyfiles)[0].strip('.dat')[4:])
-            r_LC,v_LC,a_LC = load_xyz_init_bin_DP(my_file)        
+            r_LC,v_LC,a_LC,v_LC_avg = load_xyz_init_bin_DP(my_file)        
 
             # filter lost ions
             x_LC_clip = [r_LC[0,x] for x in range(len(r_LC[0,:])) if abs(r_LC[0,x]) <10e-2] #6e-2
@@ -887,6 +996,56 @@ def data_retrieve_onefile(all_subdir,points_and_coord, condition_parameters, sla
     Gmol_data = [deltaEc, deltaEcRel, SNR, t_c]
     
     return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
+
+def load_Temp_init_bin_Lan(str_load, flag_print):      
+
+    fid = open(str_load+'.bin',  'rb')   
+
+    a    = fromfile(fid,  int32, 1)        # Read record start tag   
+    aux  = fromfile(fid,  int32, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag   
+    N_ions = aux[0]   
+
+    b    = fromfile(fid,  int32, 1)        # Read record start tag   
+    aux  = fromfile(fid,  int32, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag   
+    j_save = aux[0]   
+
+    c    = fromfile(fid,  int32, 1)        # Read record start tag   
+    aux  = fromfile(fid,  float64, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag   
+    dt_j_save_next = aux[0]   
+
+    d    = fromfile(fid,  int32, 1)        # Read record start tag   
+    aux  = fromfile(fid,  float64, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag   
+    eta = aux[0]   
+
+    e    = fromfile(fid,  int32,   1   )        # Read record start tag   
+    Temp = fromfile(fid,  float64, 1)   
+    junk = fromfile(fid,  int32,   1   )        # Read record stop tag   
+
+    f    = fromfile(fid,  int32,   1   )        # Read record start tag 
+    save_T = fromfile(fid,  float64, 7*j_save)   
+    junk = fromfile(fid,  int32,   1   )        # Read record stop tag
+
+    fid.close   
+    
+    print('len save_T', junk)   
+
+    if flag_print == 1:
+        print(a, b, c, d, e, f)   
+        print('N_ions', N_ions)   
+        print('j_save', j_save)   
+        print('dt_j_save_next', dt_j_save_next)   
+        print('eta', eta)   
+        print('Temp', Temp)   
+
+
+    save_T = reshape(save_T, (j_save, 7), order='F')   
+    print(save_T[0])   
+
+    return N_ions, j_save, dt_j_save_next, eta, Temp, save_T 
 
 #############################
 ### Single case functions ###
