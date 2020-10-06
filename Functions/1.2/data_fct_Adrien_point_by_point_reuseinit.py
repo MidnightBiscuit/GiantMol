@@ -210,26 +210,18 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
         
     return temps, temperature, fluo
     
-def plot_T_and_PM_InitQ_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs):
-    
-    # ~ xlim1 = (-0.1,6)
-    # ~ ylim1 = (0.5*1e-3,5e3)
-    # ~ ylim2 = (-2,120)
+def plot_T_and_PM_InitQ_Inje_Evol(init_data,evol_data,inje_data,flag_plot,fig_name,**kwargs):
+
+    onlyfiles = sort([f for f in listdir(evol_data) if isfile(join(evol_data, f)) and "SimuType" in f and ".dat" in f])
+    onlyfiles_reuseinit = sort([f for f in listdir(init_data) if isfile(join(init_data, f)) and "SimuType" in f and ".dat" in f])
             
     xlim1 = kwargs.get('xlim1', (-0.1,6))
     ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
     ylim2 = kwargs.get('ylim2', (-2,50))
     
-    i_aux = file_name.find('_N')
-    # file0 = 'Temp_3D_Harmo'+ file_name[i_aux:]
-    file1 = 'SimuTypeQ'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
-    file2 = 'SimuType4_01' + file_name[i_aux:]
-    file3 = 'SimuType2_01' + file_name[i_aux:]
-
-    # tt0, T_CM0, T_aux0, PM0 = load_T_and_PM_simu(file_dir2+file0)
-    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
-    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
-    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3+'50eV')
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(init_data+'/'+onlyfiles_reuseinit[2].strip('.dat'))
+    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(inje_data+'/'+onlyfiles[1].strip('.dat'))
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(evol_data+'/'+onlyfiles[0].strip('.dat'))
 
     aux = mean(PM1[-100:])
     PM_variation = ( aux - mean(PM3[-100:]) ) / aux
@@ -533,12 +525,13 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
     return temps, temperature, fluo
 
 
-def find_PM_variation_FinalT(file_dir2,file_name):
+def find_PM_variation_FinalT(file_dir2,file_dir2_reuseinit,file_name):
     i_aux = file_name.find('_N')+1
-    file1 = 'SimuTypeQ_{}'.format(file_name[i_aux:].strip('50eV.dat'))    # for N=1024
-    file3 = 'SimuType2_01_{}50eV'.format(file_name[i_aux:].strip('50eV.dat'))
+    i_aux_2 = file_name.find('0RFG')+4
+    file1 = 'SimuTypeQ_{}'.format(file_name[i_aux:i_aux_2])   # for N=1024
+    file3 = 'SimuType2_01_{}'.format(file_name[i_aux:])
     
-    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'/Temp_'+file1)
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2_reuseinit+'/Temp_'+file1)
     tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'/Temp_'+file3)
     
     aux = mean(PM1[-100:])
@@ -887,7 +880,7 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
         
         if k == len(points_and_coord)*len(num_runs) - 1:
             break
-			
+            
     t1 = time.clock() - t0
     print("Time elapsed: ", t1, 's') # CPU seconds elapsed (floating point)
     print("Time elapsed: ", t1/60, 'm') # CPU seconds elapsed (floating point)
@@ -996,6 +989,134 @@ def data_retrieve_onefile(all_subdir,points_and_coord, condition_parameters, sla
     Gmol_data = [deltaEc, deltaEcRel, SNR, t_c]
     
     return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
+
+def data_retrieve_reuseinit(all_subdir,points_and_coord, condition_parameters, slash_cfg):
+    
+    # Récupérer les données pour chaque simu
+    # Exécution en quelques minutes
+    
+    # data0, data2, data4 : nom des fichiers de fluo et température
+    # PMvar, Tvar         : variation de fluo et température entre passage Gmol et fin de simu
+    # deltaEc, deltaEcRel : variation énergie GMol
+    # t_c                 : temps de vol de la GMol entre son apparition (z=-1.5mm) et sa disparition (z=1.5mm)
+    # r_LC, v_LC, a_LC    : position, vitesse, accélération des ions Ca+
+    # r_LC_clip           : même chose mais en dégageant les ions perdus et beaucoup trop loin (hors pièges)
+    # dim_nu              : dimensions x, y et z, nuage Ca+ basé sur r_LC_clip
+
+    myslashpos = slash_cfg[0]
+    slashcond = slash_cfg[1]
+
+    # determining number of elements on each repetition
+    num_runs = [runs[myslashpos[slashcond+1]+1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
+    num_runs = list(dict.fromkeys(num_runs))
+
+    # number of repetitions
+    print('> Points |',len(points_and_coord))
+    print('> Simulations pour chaque point |', num_runs)
+    
+    data2 = [[] for i in range(len(points_and_coord))] # file path to SimuType0
+    data4 = [[] for i in range(len(points_and_coord))] # file path to SimuType2
+    data0 = [[] for i in range(len(points_and_coord))] # file path to SimuType4
+    data_address = [[] for i in range(len(points_and_coord))]
+
+    # Variables à deux coordonnées : [point, try]
+    shapevar = (len(points_and_coord),len(num_runs))
+
+    PMvar = np.zeros(shapevar)
+    Tvar = np.zeros(shapevar)
+    deltaEc = np.zeros(shapevar)
+    deltaEcRel = np.zeros(shapevar)
+    SNR = np.zeros(shapevar)
+    t_c = np.zeros(shapevar)
+    # r_LC_clip = [[[] for i in range(elem_2)] for j in range(elem_0)]
+    dim_nu=zeros((len(points_and_coord),len(num_runs),3))
+
+    file_cfg_reuseinit, slash_cfg_reuseinit, all_subdir_reuseinit = load_gui('/home/adrian')
+    all_subdir_reuseinit_aux = []
+    for k,l in enumerate(all_subdir_reuseinit):
+        for number in range(0,len(num_runs)):
+            if int(l[-2:]) == number:
+                all_subdir_reuseinit_aux.append(l)
+
+    # red_asr stands for reduced_all_subdir_reuseinit
+    # It is all_subdir_reuseinit with useless Try removed
+
+    t0 = time.clock()
+    print("Hello")
+
+    # write variables
+
+    # all files to stat
+    # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
+    
+    for k, address in enumerate(all_subdir):
+        address_reuseinit = all_subdir_reuseinit_aux[k]
+
+    # in-loop variables
+        pnt = k // len(num_runs)  # actual point
+        rep = k  % len(num_runs)          # actual repetition
+
+        # get only .dat files in each simulation directory
+        onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
+        onlyfiles_reuseinit = [f for f in listdir(address_reuseinit) if isfile(join(address_reuseinit, f)) and not "xva" in f and ".dat" in f]
+        # build path file
+        data2[pnt].append('{}/{}'.format(address,sort(onlyfiles)[0].strip('.dat')))
+        data4[pnt].append('{}/{}'.format(address,sort(onlyfiles)[1].strip('.dat')))
+        data0[pnt].append('{}/{}'.format(address_reuseinit,sort(onlyfiles_reuseinit)[2].strip('.dat')))
+        data_address[pnt].append(address)
+
+        # load fluorescence and T
+        try:
+            PMvar[pnt][rep] = find_PM_variation_FinalT(address,address_reuseinit,data2[pnt][rep])[0]
+            Tvar[pnt][rep]  = find_PM_variation_FinalT(address,address_reuseinit,data2[pnt][rep])[1]
+            SNR[pnt][rep]   = find_PM_variation_FinalT(address,address_reuseinit,data2[pnt][rep])[2]
+        except:
+            PMvar[pnt][rep] = None
+            Tvar[pnt][rep]  = None
+            SNR[pnt][rep]   = None
+
+        # load Ec variation for GMol
+        try:
+            deltaEc[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[1][4:].strip('.dat'))[2]
+            deltaEcRel[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[1][4:].strip('.dat'))[3]
+            t_c[pnt][rep] = energy_lost(address,'xva'+sort(onlyfiles)[1][4:].strip('.dat'))[4]
+        except:
+            deltaEc[pnt][rep] = None
+            deltaEcRel[pnt][rep] = None
+            t_c[pnt][rep] = None
+
+        # load cloud size before injection
+        try:
+            my_file = '{}/xva{}'.format(address_reuseinit,sort(onlyfiles_reuseinit)[2].strip('.dat')[4:])
+            r_LC,v_LC,a_LC,v_LC_avg = load_xyz_init_bin_DP(my_file)        
+
+            # filter lost ions
+            x_LC_clip = [r_LC[0,x] for x in range(len(r_LC[0,:])) if abs(r_LC[0,x]) <1] #6e-2
+            y_LC_clip = [r_LC[1,x] for x in range(len(r_LC[1,:])) if abs(r_LC[1,x]) <1]
+            z_LC_clip = [r_LC[2,x] for x in range(len(r_LC[2,:])) if abs(r_LC[2,x]) <1]
+    #         r_LC_clip[k][j][:] = [x_LC_clip,y_LC_clip,z_LC_clip]
+            r_LC_clip = [x_LC_clip,y_LC_clip,z_LC_clip]
+            dim_nu[pnt][rep] = [max(r_LC_clip[l][:]) for l in range(3)]
+        except:
+            dim_nu[pnt][rep] = None
+        
+        if not(rep % len(num_runs)):
+            print( "Point n°", pnt )
+        
+        print(f'{pnt:02}','-',f'{rep:02}',' > ',data0[pnt][rep])
+        
+        if k == len(points_and_coord)*len(num_runs) - 1:
+            break
+            
+    t1 = time.clock() - t0
+    print("Time elapsed: ", t1, 's') # CPU seconds elapsed (floating point)
+    print("Time elapsed: ", t1/60, 'm') # CPU seconds elapsed (floating point)
+    
+    data_name = [data_address, data0, data2, data4]
+    PMandT = [PMvar, Tvar]
+    Gmol_data = [deltaEc, deltaEcRel, SNR, t_c]
+    
+    return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu, all_subdir_reuseinit_aux
 
 def load_Temp_init_bin_Lan(str_load, flag_print):      
 
