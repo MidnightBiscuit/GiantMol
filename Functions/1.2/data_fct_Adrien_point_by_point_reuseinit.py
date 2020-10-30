@@ -278,6 +278,54 @@ def plot_T_and_PM_InitQ_Inje_Evol(init_data,evol_data,inje_data,flag_plot,fig_na
         
     return temps, temperature, fluo
 
+def plot_T_and_PM_InitQ_Evol_AfterCool(init_data,evol_data,flag_plot,fig_name,**kwargs):
+
+    onlyfiles = sort([f for f in listdir(evol_data) if isfile(join(evol_data, f)) and "SimuType" in f and ".dat" in f])
+    onlyfiles_reuseinit = sort([f for f in listdir(init_data) if isfile(join(init_data, f)) and "SimuType" in f and ".dat" in f])
+            
+    xlim1 = kwargs.get('xlim1', (-0.1,6))
+    ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
+    ylim2 = kwargs.get('ylim2', (-2,50))
+    
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(init_data+r'\\'+onlyfiles_reuseinit[2].strip('.dat'))
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(evol_data+r'\\'+onlyfiles[0].strip('.dat'))
+
+
+    tt    = concatenate( (   tt1, tt3) )
+    T_CM  = concatenate( (T_CM1,T_CM3) )
+    T_aux = concatenate( (T_aux1,T_aux3) )
+    
+    if flag_plot == 1 :
+        #fig_name = file_name[-9:]
+        fig = figure(fig_name); clf()
+        ax1 = subplot(211)
+        semilogy(tt*1.e3,T_aux[:,0], label='Tx')
+        semilogy(tt*1.e3,T_aux[:,1], label='Ty')
+        semilogy(tt*1.e3,T_aux[:,2], label='Tz')
+        ax1.grid()
+
+        legend()
+        # ~ xlabel('time[ms]')
+        # ~ ylabel('T[K]')
+        plt.setp(ax1.get_xticklabels(),visible=False)
+
+        ax2 = subplot(212,sharex=ax1)
+        plot(tt*1.e3,T_aux[:,0], label='Tx')
+        plot(tt*1.e3,T_aux[:,1], label='Tx')
+        plot(tt*1.e3,T_aux[:,2], label='Tx')
+        ax2.grid()
+        
+        xlabel('time[ms]')
+        ylabel('T [k]')
+                               
+        ax1.set_xlim(xlim1)
+        ax1.set_ylim(ylim1)
+        ax2.set_ylim(ylim2)
+        plt.tight_layout()
+        subplots_adjust(hspace=0.015)
+        
+    return tt, T_aux, T_CM
+
 def plot_T_and_PM_Init(file_dir2,file_name,**kwargs):
     
     # ~ xlim1 = (-0.1,6)
@@ -1156,6 +1204,7 @@ def data_retrieve_reuseinit_RFRelax(all_subdir,points_and_coord, condition_param
 
     # Variables à deux coordonnées : [point, try]
     shapevar = (len(points_and_coord),len(num_runs))
+    print(shapevar)
 
     PMvar = np.zeros(shapevar)
     Tvar = np.zeros(shapevar)
@@ -1169,8 +1218,8 @@ def data_retrieve_reuseinit_RFRelax(all_subdir,points_and_coord, condition_param
     file_cfg_reuseinit, slash_cfg_reuseinit, all_subdir_reuseinit = load_gui('/home/adrian')
     all_subdir_reuseinit_aux = []
     for k,l in enumerate(all_subdir_reuseinit):
-        for number in range(0,len(num_runs)):
-            if int(l[-2:]) == number:
+        for _,number in enumerate(num_runs):
+            if l[-2:] == number[-2:]:
                 all_subdir_reuseinit_aux.append(l)
 
     # red_asr stands for reduced_all_subdir_reuseinit
