@@ -744,6 +744,126 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg,m
     
     return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
 
+def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, slash_cfg, mode):
+    # Récupérer les données pour chaque simu
+    # Exécution en quelques minutes
+
+    # data0, data2, data4 : nom des fichiers de fluo et température
+    # PMvar, Tvar         : variation de fluo et température entre passage Gmol et fin de simu
+    # deltaEc, deltaEcRel : variation énergie GMol
+    # t_c                 : temps de vol de la GMol entre son apparition (z=-1.5mm) et sa disparition (z=1.5mm)
+    # r_LC, v_LC, a_LC    : position, vitesse, accélération des ions Ca+
+    # r_LC_clip           : même chose mais en dégageant les ions perdus et beaucoup trop loin (hors pièges)
+    # dim_nu              : dimensions x, y et z, nuage Ca+ basé sur r_LC_clip
+
+    myslashpos = slash_cfg[0]
+    slashcond = slash_cfg[1]
+
+    # determining number of elements on each repetition
+    num_runs = [runs[myslashpos[slashcond + 1] + 1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
+    num_runs = list(dict.fromkeys(num_runs))
+
+    # number of repetitions
+    print('> Points |', len(points_and_coord))
+    print('> Simulations pour chaque point |', num_runs)
+
+    data0 = [[] for i in range(len(points_and_coord))]  # file path to SimuType0 or Q
+    data6 = [[] for i in range(len(points_and_coord))]  # file path to SimuType6
+    data_address = [[] for i in range(len(points_and_coord))]
+
+    # Variables à deux coordonnées : [point, try]
+    shapevar = (len(points_and_coord), len(num_runs))
+
+    PMvar = np.zeros(shapevar)
+    Tvar = np.zeros(shapevar)
+    deltaEc = np.zeros(shapevar)
+    deltaEcRel = np.zeros(shapevar)
+    SNR = np.zeros(shapevar)
+    t_c = np.zeros(shapevar)
+    # r_LC_clip = [[[] for i in range(elem_2)] for j in range(elem_0)]
+    dim_nu = zeros((len(points_and_coord), len(num_runs), 3))
+
+    t0 = time.clock()
+    print("Hello")
+
+    # write variables
+    # all files to stat
+    # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
+
+    for k, address in enumerate(all_subdir):
+
+        # in-loop variables
+        pnt = k // len(num_runs)  # actual point
+        rep = k % len(num_runs)  # actual repetition
+
+        # get only .dat files in each simulation directory
+        onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
+        #         onlyfiles = [f for f in listdir(fileload[k][j]) if isfile(join(fileload[k][j], f))]
+        #         onlyfiles = [i for i in onlyfiles if not "xva" in i]            # vire les xva_...
+        #         onlyfiles = [i for i in onlyfiles if ".dat" in i]               # ne garde que les .dat
+        # build path file
+        print(sort(onlyfiles))
+        print(pnt)
+        data0[pnt].append('{}\{}'.format(address, sort(onlyfiles)[1].strip('.dat')))
+        data6[pnt].append('{}\{}'.format(address, sort(onlyfiles)[0].strip('.dat')))
+        data_address[pnt].append(address)
+
+        # load fluorescence and T
+        try:
+            PMvar[pnt][rep] = find_PM_variation_FinalT(address, sort(onlyfiles)[0].strip('.dat'))[0]
+            Tvar[pnt][rep] = find_PM_variation_FinalT(address, sort(onlyfiles)[0].strip('.dat'))[1]
+            SNR[pnt][rep] = find_PM_variation_FinalT(address, sort(onlyfiles)[0].strip('.dat'))[2]
+        except:
+            PMvar[pnt][rep] = None
+            Tvar[pnt][rep] = None
+            SNR[pnt][rep] = None
+
+        # load Ec variation for GMol
+        if mode == 'GMol':
+            deltaEc[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[2][4:].strip('.dat'))[2]
+            deltaEcRel[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[2][4:].strip('.dat'))[3]
+            t_c[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[2][4:].strip('.dat'))[4]
+        elif mode == 'stopping_power':
+            deltaEc[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[1][4:].strip('.dat'))[2]
+            deltaEcRel[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[1][4:].strip('.dat'))[3]
+            t_c[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[1][4:].strip('.dat'))[4]
+        elif mode == 'RFrelax':
+            deltaEc[pnt][rep] = None
+            deltaEcRel[pnt][rep] = None
+            t_c[pnt][rep] = None
+
+        # load cloud size before injection
+        try:
+            my_file = '{}/xva{}'.format(address, sort(onlyfiles)[0].strip('.dat')[4:])
+            r_LC, v_LC, a_LC = load_xyz_init_bin_DP(my_file)
+
+            # filter lost ions
+            x_LC_clip = [r_LC[0, x] for x in range(len(r_LC[0, :])) if abs(r_LC[0, x]) < 6e-2]
+            y_LC_clip = [r_LC[1, x] for x in range(len(r_LC[1, :])) if abs(r_LC[1, x]) < 6e-2]
+            z_LC_clip = [r_LC[2, x] for x in range(len(r_LC[2, :])) if abs(r_LC[2, x]) < 1e-0]
+            #         r_LC_clip[k][j][:] = [x_LC_clip,y_LC_clip,z_LC_clip]
+            r_LC_clip = [x_LC_clip, y_LC_clip, z_LC_clip]
+            dim_nu[pnt][rep] = [max(r_LC_clip[l][:]) for l in range(3)]
+        except:
+            dim_nu[pnt][rep] = None
+
+        if not (rep % len(num_runs)):
+            print("Point n°", pnt)
+
+        print(f'{pnt:02}', '-', f'{rep:02}', ' > ', data0[pnt][rep])
+
+    # print(my_dico[str(cond_two_name)+str(key2)])
+    # print(my_dico[str(cond_one_name)+str(key1)])
+    t1 = time.clock() - t0
+    print("Time elapsed: ", t1, 's')  # CPU seconds elapsed (floating point)
+    print("Time elapsed: ", t1 / 60, 'm')  # CPU seconds elapsed (floating point)
+
+    data_name = [data_address, data0, data6]
+    PMandT = [PMvar, Tvar]
+    Gmol_data = [deltaEc, deltaEcRel, SNR, t_c]
+
+    return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
+
 # ======================================================================== #
 # pour les couleurs
 from matplotlib import colors as mcolors

@@ -282,18 +282,23 @@ def plot_T_and_PM_InitQ_Evol_AfterCool(init_data,evol_data,flag_plot,fig_name,**
 
     onlyfiles = sort([f for f in listdir(evol_data) if isfile(join(evol_data, f)) and "SimuType" in f and ".dat" in f])
     onlyfiles_reuseinit = sort([f for f in listdir(init_data) if isfile(join(init_data, f)) and "SimuType" in f and ".dat" in f])
+    onlyfiles_reuseinit_Lan = sort([f for f in listdir(init_data) if isfile(join(init_data, f)) and "Harmo" in f])
             
     xlim1 = kwargs.get('xlim1', (-0.1,6))
     ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
     ylim2 = kwargs.get('ylim2', (-2,50))
-    
+        
+        
+    N_ions, j_save, dt_j_save_next, eta, Temp, save_T = load_Temp_init_bin_Lan(init_data+r'\\'+onlyfiles_reuseinit_Lan[0].strip('.bin'),0)
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(init_data+r'\\'+onlyfiles_reuseinit[2].strip('.dat'))
     tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(evol_data+r'\\'+onlyfiles[0].strip('.dat'))
 
-
-    tt    = concatenate( (   tt1, tt3) )
-    T_CM  = concatenate( (T_CM1,T_CM3) )
-    T_aux = concatenate( (T_aux1,T_aux3) )
+    tt0 = save_T[:,0]
+    T_CM0 = save_T[:,1:4]
+    T_aux0 = save_T[:,4:]
+    tt    = concatenate( (tt0, tt1, tt3) )
+    T_CM  = concatenate( (T_CM0,T_CM1,T_CM3) )
+    T_aux = concatenate( (T_aux0,T_aux1,T_aux3) )
     
     if flag_plot == 1 :
         #fig_name = file_name[-9:]
@@ -1188,7 +1193,8 @@ def data_retrieve_reuseinit_RFRelax(all_subdir,points_and_coord, condition_param
 
     # determining number of elements on each repetition
     try:
-        num_runs = ['Try'+f'{xx:02d}' for xx in range(kwargs.get('forcenumrun'))]
+        nums_runs = [xx for xx in kwargs.get('forcecond')]
+        # num_runs = ['Try'+f'{xx:02d}' for xx in range(kwargs.get('forcecond'))]
     except:
         num_runs = [runs[myslashpos[slashcond+1]+1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
         num_runs = list(dict.fromkeys(num_runs))
@@ -1218,9 +1224,14 @@ def data_retrieve_reuseinit_RFRelax(all_subdir,points_and_coord, condition_param
     file_cfg_reuseinit, slash_cfg_reuseinit, all_subdir_reuseinit = load_gui('/home/adrian')
     all_subdir_reuseinit_aux = []
     for k,l in enumerate(all_subdir_reuseinit):
-        for _,number in enumerate(num_runs):
+        try: # if a certain Try is choosen for initialization
+            number = kwargs.get('forcetryinit')[0]
             if l[-2:] == number[-2:]:
                 all_subdir_reuseinit_aux.append(l)
+        except: # if not choose same try as data to plot
+            for _,number in enumerate(num_runs):
+                if l[-2:] == number[-2:]:
+                    all_subdir_reuseinit_aux.append(l)
 
     # red_asr stands for reduced_all_subdir_reuseinit
     # It is all_subdir_reuseinit with useless Try removed

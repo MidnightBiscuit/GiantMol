@@ -532,6 +532,58 @@ def plot_T_and_PM_Init_RFrelax_AfterInj_Evol(file_dir2,file_name,flag_plot,fig_n
         
     return temps, temperature, fluo
 
+def plot_T_and_PM_InitQ_Evol_AfterCool(data, flag_plot, fig_name, **kwargs):
+    onlyfiles = sort([f for f in listdir(data) if isfile(join(data, f)) and "SimuType" in f and ".dat" in f])
+    onlyfiles_Lan = sort([f for f in listdir(data) if isfile(join(data, f)) and "Harmo" in f])
+
+    xlim1 = kwargs.get('xlim1', (-0.1, 6))
+    ylim1 = kwargs.get('ylim1', (0.5 * 1e-3, 2e4))
+    ylim2 = kwargs.get('ylim2', (-2, 50))
+
+    N_ions, j_save, dt_j_save_next, eta, Temp, save_T = load_Temp_init_bin_Lan(
+        data + r'\\' + onlyfiles_Lan[0].strip('.bin'), 0)
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(data + r'\\' + onlyfiles[1].strip('.dat'))
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(data + r'\\' + onlyfiles[0].strip('.dat'))
+
+    tt0 = save_T[:, 0]
+    T_CM0 = save_T[:, 1:4]
+    T_aux0 = save_T[:, 4:]
+    tt = concatenate((tt0, tt1, tt3))
+    T_CM = concatenate((T_CM0, T_CM1, T_CM3))
+    T_aux = concatenate((T_aux0, T_aux1, T_aux3))
+
+    if flag_plot == 1:
+        # fig_name = file_name[-9:]
+        fig = figure(fig_name);
+        clf()
+        ax1 = subplot(211)
+        semilogy(tt * 1.e3, T_aux[:, 0], label='Tx')
+        semilogy(tt * 1.e3, T_aux[:, 1], label='Ty')
+        semilogy(tt * 1.e3, T_aux[:, 2], label='Tz')
+        ax1.grid()
+
+        legend()
+        # ~ xlabel('time[ms]')
+        # ~ ylabel('T[K]')
+        plt.setp(ax1.get_xticklabels(), visible=False)
+
+        ax2 = subplot(212, sharex=ax1)
+        plot(tt * 1.e3, T_aux[:, 0], label='Tx')
+        plot(tt * 1.e3, T_aux[:, 1], label='Tx')
+        plot(tt * 1.e3, T_aux[:, 2], label='Tx')
+        ax2.grid()
+
+        xlabel('time[ms]')
+        ylabel('T [k]')
+
+        ax1.set_xlim(xlim1)
+        ax1.set_ylim(ylim1)
+        ax2.set_ylim(ylim2)
+        plt.tight_layout()
+        subplots_adjust(hspace=0.015)
+
+    return tt, T_aux, T_CM
+
 
 def find_PM_variation_FinalT(file_dir2,file_name):
     i_aux = file_name.find('_N')+1
@@ -997,6 +1049,99 @@ def data_retrieve_onefile(all_subdir,points_and_coord, condition_parameters, sla
     
     return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
 
+def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, slash_cfg, mode):
+    # Récupérer les données pour chaque simu
+    # Exécution en quelques minutes
+
+    # data0, data2, data4 : nom des fichiers de fluo et température
+    # PMvar, Tvar         : variation de fluo et température entre passage Gmol et fin de simu
+    # deltaEc, deltaEcRel : variation énergie GMol
+    # t_c                 : temps de vol de la GMol entre son apparition (z=-1.5mm) et sa disparition (z=1.5mm)
+    # r_LC, v_LC, a_LC    : position, vitesse, accélération des ions Ca+
+    # r_LC_clip           : même chose mais en dégageant les ions perdus et beaucoup trop loin (hors pièges)
+    # dim_nu              : dimensions x, y et z, nuage Ca+ basé sur r_LC_clip
+
+    myslashpos = slash_cfg[0]
+    slashcond = slash_cfg[1]
+
+    # determining number of elements on each repetition
+    num_runs = [runs[myslashpos[slashcond + 1] + 1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
+    num_runs = list(dict.fromkeys(num_runs))
+
+    # number of repetitions
+    print('> Points |', len(points_and_coord))
+    print('> Simulations pour chaque point |', num_runs)
+
+    data0 = [[] for i in range(len(points_and_coord))]  # file path to SimuType0 or Q
+    data6 = [[] for i in range(len(points_and_coord))]  # file path to SimuType6
+    data_address = [[] for i in range(len(points_and_coord))]
+
+    # Variables à deux coordonnées : [point, try]
+    shapevar = (len(points_and_coord), len(num_runs))
+
+    PMvar = np.zeros(shapevar)
+    Tvar = np.zeros(shapevar)
+    deltaEc = np.zeros(shapevar)
+    deltaEcRel = np.zeros(shapevar)
+    SNR = np.zeros(shapevar)
+    t_c = np.zeros(shapevar)
+    # r_LC_clip = [[[] for i in range(elem_2)] for j in range(elem_0)]
+    dim_nu = zeros((len(points_and_coord), len(num_runs), 3))
+
+    t0 = time.clock()
+    print("Hello")
+
+    # write variables
+    # all files to stat
+    # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
+
+    for k, address in enumerate(all_subdir):
+
+        # in-loop variables
+        pnt = k // len(num_runs)  # actual point
+        rep = k % len(num_runs)  # actual repetition
+
+        # get only .dat files in each simulation directory
+        onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
+        #         onlyfiles = [f for f in listdir(fileload[k][j]) if isfile(join(fileload[k][j], f))]
+        #         onlyfiles = [i for i in onlyfiles if not "xva" in i]            # vire les xva_...
+        #         onlyfiles = [i for i in onlyfiles if ".dat" in i]               # ne garde que les .dat
+        # build path file
+        print(sort(onlyfiles))
+        print(pnt)
+        data0[pnt].append('{}\{}'.format(address, sort(onlyfiles)[1].strip('.dat')))
+        data6[pnt].append('{}\{}'.format(address, sort(onlyfiles)[0].strip('.dat')))
+        data_address[pnt].append(address)
+
+        # load Ec variation for GMol
+        if mode == 'GMol':
+            deltaEc[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[2][4:].strip('.dat'))[2]
+            deltaEcRel[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[2][4:].strip('.dat'))[3]
+            t_c[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[2][4:].strip('.dat'))[4]
+        elif mode == 'stopping_power':
+            deltaEc[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[1][4:].strip('.dat'))[2]
+            deltaEcRel[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[1][4:].strip('.dat'))[3]
+            t_c[pnt][rep] = energy_lost(address, 'xva' + sort(onlyfiles)[1][4:].strip('.dat'))[4]
+        elif mode == 'RFrelax':
+            deltaEc[pnt][rep] = None
+            deltaEcRel[pnt][rep] = None
+            t_c[pnt][rep] = None
+
+        if not (rep % len(num_runs)):
+            print("Point n°", pnt)
+
+        print(f'{pnt:02}', '-', f'{rep:02}', ' > ', data0[pnt][rep])
+
+    # print(my_dico[str(cond_two_name)+str(key2)])
+    # print(my_dico[str(cond_one_name)+str(key1)])
+    t1 = time.clock() - t0
+    print("Time elapsed: ", t1, 's')  # CPU seconds elapsed (floating point)
+    print("Time elapsed: ", t1 / 60, 'm')  # CPU seconds elapsed (floating point)
+
+    data_name = [data_address, data0, data6]
+
+    return data_name, num_runs
+
 def load_Temp_init_bin_Lan(str_load, flag_print):      
 
     fid = open(str_load+'.bin',  'rb')   
@@ -1158,23 +1303,22 @@ def load_RF_relax(address,flag_plot,RF_relax_type):
     # retrieve files adresses
     onlyfiles, data_files = file_name_retrieve(address,simu_type='RF_relax')
     file0 = data_files[0];file2 = data_files[1];file4 = data_files[2];file6 = data_files[3]
-    # load Ec variation for GMol
-    _,_,deltaEc,deltaEcRel,t_c = energy_lost(address,'xva'+sort(onlyfiles)[2][4:].strip('.dat'))
-    # load cloud size before injection
-    r_LC_clip, dim_nu = cloud_size(address,onlyfiles)
+
     # load fluorescence and T var
     # Temperature during time
     if RF_relax_type == 'AfterCool':
-        temps, temperature, fluo = plot_T_and_PM_Init_RFrelax_AfterCooling_Evol(address+'/',sort(onlyfiles)[0].strip('.dat')[4:],flag_plot,'RFrelax_AfterCool',xlim1=(-1.5,55),ylim1=(5e-5,12e3))
+        tt, T_aux, T_CM = plot_T_and_PM_InitQ_Evol_AfterCool(address+'/',flag_plot,'RFrelax_AfterCool',xlim1=(-1.5,55),ylim1=(5e-5,12e3))
+        GMol_var = None
+        r_LC_clip = None
     elif RF_relax_type == 'AfterInj':
-        temps, temperature, fluo = plot_T_and_PM_Init_RFrelax_AfterInj_Evol(address+'/',sort(onlyfiles)[0].strip('.dat')[4:],flag_plot,'RFrelax_AfterInj',xlim1=(-1.5,55),ylim1=(5e-5,12e3))
+        # load Ec variation for GMol
+        _, _, deltaEc, deltaEcRel, t_c = energy_lost(address, 'xva' + sort(onlyfiles)[2][4:].strip('.dat'))
+        # load cloud size before injection
+        r_LC_clip, dim_nu = cloud_size(address, onlyfiles)
+        tt, T_aux, T_CM = plot_T_and_PM_Init_RFrelax_AfterInj_Evol(address+'/',sort(onlyfiles)[0].strip('.dat')[4:],flag_plot,'RFrelax_AfterInj',xlim1=(-1.5,55),ylim1=(5e-5,12e3))
+        GMol_var = [deltaEc, deltaEcRel, t_c]
 
-    fluo_var = [fluo[1], temperature[1], fluo[2]]                        # temps = [tt,t_aux1, t_aux2]
-    GMol_var = [deltaEc,deltaEcRel,t_c]                                  # fluo = [PM, PM_variation, SNR]
-    cloud_atlas = [temps[0], temperature[0], temperature[2], fluo[0]]    # temperature = [T_aux, T_variation]
-    t_aux = [temps[1],temps[2]]
-    
-    return fluo_var, GMol_var, cloud_atlas, t_aux, r_LC_clip
+    return tt, T_aux, T_CM, GMol_var, r_LC_clip
 
 # ======================================================================== #
 # pour les couleurs
