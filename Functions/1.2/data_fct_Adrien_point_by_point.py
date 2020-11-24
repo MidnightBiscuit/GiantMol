@@ -1049,7 +1049,7 @@ def data_retrieve_onefile(all_subdir,points_and_coord, condition_parameters, sla
     
     return data_name, num_runs, PMandT, Gmol_data, r_LC_clip, dim_nu
 
-def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, slash_cfg, mode):
+def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, slash_cfg, mode, **kwargs):
     # Récupérer les données pour chaque simu
     # Exécution en quelques minutes
 
@@ -1065,8 +1065,13 @@ def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, sl
     slashcond = slash_cfg[1]
 
     # determining number of elements on each repetition
-    num_runs = [runs[myslashpos[slashcond + 1] + 1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
-    num_runs = list(dict.fromkeys(num_runs))
+    try:
+        nums_runs = [xx for xx in kwargs.get('forcecond')]
+        # num_runs = ['Try'+f'{xx:02d}' for xx in range(kwargs.get('forcecond'))]
+    except:
+        num_runs = [runs[myslashpos[slashcond + 1] + 1:] for runs in all_subdir if
+                    list(points_and_coord.keys())[0] in runs]
+        num_runs = list(dict.fromkeys(num_runs))
 
     # number of repetitions
     print('> Points |', len(points_and_coord))
@@ -1088,6 +1093,18 @@ def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, sl
     # r_LC_clip = [[[] for i in range(elem_2)] for j in range(elem_0)]
     dim_nu = zeros((len(points_and_coord), len(num_runs), 3))
 
+    all_subdir_aux = []
+    for k,l in enumerate(all_subdir):
+        try: # if a certain Try is choosen for initialization
+            number = kwargs.get('forcetryinit')[0]
+            if l[-2:] == number[-2:]:
+                all_subdir_aux.append(l)
+        except: # if not choose same try as data to plot
+            for _,number in enumerate(num_runs):
+                if l[-2:] == number[-2:]:
+                    all_subdir_aux.append(l)
+
+
     t0 = time.clock()
     print("Hello")
 
@@ -1095,7 +1112,7 @@ def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, sl
     # all files to stat
     # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
 
-    for k, address in enumerate(all_subdir):
+    for k, address in enumerate(all_subdir_aux):
 
         # in-loop variables
         pnt = k // len(num_runs)  # actual point
