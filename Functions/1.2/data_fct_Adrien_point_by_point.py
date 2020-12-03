@@ -540,8 +540,8 @@ def plot_T_and_PM_InitQ_Evol_AfterCool(data, flag_plot, fig_name, **kwargs):
     ylim1 = kwargs.get('ylim1', (0.5 * 1e-3, 2e4))
     ylim2 = kwargs.get('ylim2', (-2, 50))
 
-    N_ions, j_save, dt_j_save_next, eta, Temp, save_T = load_Temp_init_bin_Lan(
-        data + r'\\' + onlyfiles_Lan[0].strip('.bin'), 0)
+    N_ions, j_save, dt_j_save_next, eta, Temp, save_T = \
+        load_Temp_init_bin_Lan(data + r'\\' + onlyfiles_Lan[0].strip('.bin'), 0)
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(data + r'\\' + onlyfiles[1].strip('.dat'))
     tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(data + r'\\' + onlyfiles[0].strip('.dat'))
 
@@ -676,8 +676,28 @@ def load_trj(str_load):
     fid.close
 
     return t,r_x, r_y, r_z, v_x, v_y, v_z, a_x, a_y, a_z
-    
-    
+
+
+def load_cloud_trj(str_load):
+    fid = open(str_load + '.bin', 'rb')
+
+    junk0 = fromfile(fid, int32, 1)  # Read record start tag
+    aux = fromfile(fid, int32, 1)
+    junk1 = fromfile(fid, int32, 1)  # Read record stop tag
+    jmax = aux[0]
+
+    junk2 = fromfile(fid, int32, 1)  # Read record start tag
+    aux = fromfile(fid, int32, 1)
+    junk3 = fromfile(fid, int32, 1)  # Read record stop tag
+    N_ions = aux[0]
+
+    junk4 = fromfile(fid, int32, 1)  # Read record start tag
+    r = fromfile(fid, single, int(junk4[0] / 4))  # jmax*N_ions*3
+    junk5 = fromfile(fid, int32, 1)  # Read record stop tag
+
+    fid.close
+
+    return jmax, N_ions, r
     
 ##### FORTRAN ANALYSIS #####
 ###   Fonctions Adrien   ###
@@ -1066,7 +1086,7 @@ def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, sl
 
     # determining number of elements on each repetition
     try:
-        nums_runs = [xx for xx in kwargs.get('forcecond')]
+        num_runs = [xx for xx in kwargs.get('forcetry')]
         # num_runs = ['Try'+f'{xx:02d}' for xx in range(kwargs.get('forcecond'))]
     except:
         num_runs = [runs[myslashpos[slashcond + 1] + 1:] for runs in all_subdir if
