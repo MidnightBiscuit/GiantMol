@@ -541,9 +541,9 @@ def plot_T_and_PM_InitQ_Evol_AfterCool(data, flag_plot, fig_name, **kwargs):
     ylim2 = kwargs.get('ylim2', (-2, 50))
 
     N_ions, j_save, dt_j_save_next, eta, Temp, save_T = \
-        load_Temp_init_bin_Lan(data + r'\\' + onlyfiles_Lan[0].strip('.bin'), 0)
-    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(data + r'\\' + onlyfiles[1].strip('.dat'))
-    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(data + r'\\' + onlyfiles[0].strip('.dat'))
+        load_Temp_init_bin_Lan(data + os.path.sep + onlyfiles_Lan[0].strip('.bin'), 0)
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(data + os.path.sep + onlyfiles[1].strip('.dat'))
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(data + os.path.sep + onlyfiles[0].strip('.dat'))
 
     tt0 = save_T[:, 0]
     T_CM0 = save_T[:, 1:4]
@@ -1124,7 +1124,7 @@ def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, sl
                 if l[-2:] == number[-2:]:
                     all_subdir_aux.append(l)
 
-
+    print(all_subdir_aux)
     t0 = time.clock()
     print("Hello")
 
@@ -1144,8 +1144,8 @@ def data_retrieve_RFRelax(all_subdir, points_and_coord, condition_parameters, sl
         #         onlyfiles = [i for i in onlyfiles if not "xva" in i]            # vire les xva_...
         #         onlyfiles = [i for i in onlyfiles if ".dat" in i]               # ne garde que les .dat
         # build path file
-        print(sort(onlyfiles))
-        print(pnt)
+        # ~ print(sort(onlyfiles))
+        # ~ print(pnt)
         data0[pnt].append('{}\{}'.format(address, sort(onlyfiles)[1].strip('.dat')))
         data6[pnt].append('{}\{}'.format(address, sort(onlyfiles)[0].strip('.dat')))
         data_address[pnt].append(address)
