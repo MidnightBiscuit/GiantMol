@@ -854,7 +854,7 @@ def simu_conditions(all_subdir, myslashpos, slashcond,filename):
     return points_and_coord, condition_parameters
 
 # Recovering two varying condition data
-def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
+def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg,**kwargs):
     
     # Récupérer les données pour chaque simu
     # Exécution en quelques minutes
@@ -871,8 +871,15 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
     slashcond = slash_cfg[1]
 
     # determining number of elements on each repetition
-    num_runs = [runs[myslashpos[slashcond+1]+1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
-    num_runs = list(dict.fromkeys(num_runs))
+    try:
+        num_runs = ['Try'+str(kwargs.get('forcenumtry'))]
+        num_runs_aux = [runs[myslashpos[slashcond+1]+1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
+        num_runs_aux = list(dict.fromkeys(num_runs_aux))
+        num_runs_aux = len(num_runs_aux)
+        all_subdir = [x for w,x in enumerate(all_subdir) if (w-kwargs.get('forcenumtry'))%num_runs_aux==0]
+    except:
+        num_runs = [runs[myslashpos[slashcond+1]+1:] for runs in all_subdir if list(points_and_coord.keys())[0] in runs]
+        num_runs = list(dict.fromkeys(num_runs))
 
     # number of repetitions
     print('> Points |',len(points_and_coord))
@@ -902,6 +909,7 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg):
 
     # all files to stat
     # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
+    
     
     for k, address in enumerate(all_subdir):
 
