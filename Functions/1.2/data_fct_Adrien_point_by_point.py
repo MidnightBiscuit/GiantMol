@@ -84,6 +84,10 @@ def convert_dico_to_var(dico):
 def load_T_and_PM_simu(str_load):
     data = loadtxt('{}.dat'.format(str_load),comments='%');
     return data[:,0],data[:,1:4], data[:,4:7], data[:,7] # tt, T_CM, T_aux, PM
+    
+def load_T_and_PM_simu_noGMOL(str_load):
+    data = loadtxt('{}.dat'.format(str_load),comments='%');
+    return data[:,0],data[:,1:4] # tt, T_CM, T_aux, PM
 
 def load_xyz_init_bin_DP(str_load):
     aux_info = loadtxt(str_load+'.info',comments='%');
@@ -285,6 +289,77 @@ def plot_T_and_PM_InitQ_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwarg
     temperature = [T_aux, T_variation, T_CM]
         
     return temps, temperature, fluo
+
+def plot_T_and_PM_InitQ_Inje(file_dir2,file_name,flag_plot,fig_name,**kwargs):
+    
+    # ~ xlim1 = (-0.1,6)
+    # ~ ylim1 = (0.5*1e-3,5e3)
+    # ~ ylim2 = (-2,120)
+            
+    xlim1 = kwargs.get('xlim1', (-0.1,6))
+    ylim1 = kwargs.get('ylim1', (0.5*1e-3,2e4))
+    ylim2 = kwargs.get('ylim2', (-2,50))
+    
+    i_aux = file_name.find('_N')
+    # file0 = 'Temp_3D_Harmo'+ file_name[i_aux:]
+    file1 = 'SimuTypeQ'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
+    file2 = 'SimuType4_01' + file_name[i_aux:]
+
+    # tt0, T_CM0, T_aux0, PM0 = load_T_and_PM_simu(file_dir2+file0)
+    tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
+    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
+
+    aux = mean(PM1[-100:])            
+
+    # Auxiliary arrays:
+    t_aux1 = array([tt2[ 0],tt2[ 0]])
+    t_aux2 = array([tt2[-1],tt2[-1]])
+    y1_aux = array([1.0e-3 ,1.0e-1 ])
+#     y2_aux = array([0 ,20 ])
+    y2_aux = array([0 ,50 ])
+
+    tt    = concatenate( (   tt1,   tt2) )
+    T_CM  = concatenate( (T_CM1,T_CM2) )
+    T_aux = concatenate( (T_aux1,T_aux2) )
+    PM    = concatenate( (PM1,PM2) )
+    
+    if flag_plot == 1 :
+        #fig_name = file_name[-9:]
+        fig = figure(fig_name); clf()
+        ax1 = subplot(211)
+        semilogy(tt*1.e3,T_aux[:,0], label='Tx')
+        semilogy(tt*1.e3,T_aux[:,1], label='Ty')
+        semilogy(tt*1.e3,T_aux[:,2], label='Tz')
+        semilogy(t_aux1*1.e3,y1_aux,'r')
+        semilogy(t_aux2*1.e3,y1_aux,'r')
+        ax1.grid()
+
+        legend()
+        # ~ xlabel('time[ms]')
+        # ~ ylabel('T[K]')
+        plt.setp(ax1.get_xticklabels(),visible=False)
+
+        ax2 = subplot(212,sharex=ax1)
+        plot(tt*1.e3,PM[:])
+        plot(t_aux1*1.e3,y2_aux,'r')
+        plot(t_aux2*1.e3,y2_aux,'r')
+        ax2.grid()
+        
+        xlabel('time[ms]')
+        ylabel('Counts')
+                               
+        ax1.set_xlim(xlim1)
+        ax1.set_ylim(ylim1)
+        ax2.set_ylim(ylim2)
+        plt.tight_layout()
+        subplots_adjust(hspace=0.015)
+        
+    temps = [tt,t_aux1, t_aux2]
+    fluo = [PM, 0, 0]
+    temperature = [T_aux, T_variation, T_CM]
+        
+    return temps, temperature, fluo
+
 
 def plot_T_and_PM_Init(file_dir2,file_name,**kwargs):
     
@@ -593,11 +668,13 @@ def find_PM_variation_FinalT(file_dir2,file_name):
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'/Temp_'+file1)
     tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'/Temp_'+file3)
     
-    aux = mean(PM1[-100:])
-    PM_variation = ( aux - mean(PM3[-100:]) ) / aux
-    T_variation  = mean(T_aux3[-100:,0]) + mean(T_aux3[-100:,1]) + mean(T_aux3[-100:,2])
+    # 1ms is 2000 pts at 1pt/500ns
     
-    SNR = np.abs( aux - mean(PM3[-100:]) )/np.sqrt(aux) # Sig-to-Noi ratio considering Poisson noise
+    aux = mean(PM1[-2000:])
+    PM_variation = ( aux - mean(PM3[-2000:]) ) / aux
+    T_variation  = ( mean(T_aux3[-2000:,0]) + mean(T_aux3[-2000:,1]) + mean(T_aux3[-2000:,2]) ) / 3
+    
+    SNR = np.abs( aux - mean(PM3[-2000:]) )/np.sqrt(aux) # Sig-to-Noi ratio considering Poisson noise
     
     return PM_variation, T_variation, SNR
 
