@@ -1314,6 +1314,45 @@ def load_Temp_init_bin_Lan(str_load, flag_print):
 
     return N_ions, j_save, dt_j_save_next, eta, Temp, save_T 
 
+def load_xva_init_bin_Lan(str_load, flag_print):      
+
+    fid = open(str_load+'.bin',  'rb')   
+
+    a    = fromfile(fid,  int32, 1)        # Read record start tag   
+    aux  = fromfile(fid,  int32, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag   
+    N_ions = aux[0]   
+
+    b    = fromfile(fid,  int32, 1)        # Read record start tag   
+    aux  = fromfile(fid,  int32, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag   
+    j_save = aux[0]   
+
+    c    = fromfile(fid,  int32, 1)        # Read record start tag   
+    t_act= fromfile(fid,  float64, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag   
+
+    d    = fromfile(fid,  int32, 1)        # Read record start tag   
+    dt   = fromfile(fid,  float64, 1)   
+    junk = fromfile(fid,  int32, 1)        # Read record stop tag
+    
+    e    = fromfile(fid,  int32,   1   )        # Read record start tag   
+    iRF  = fromfile(fid,  int32, 3)   
+    junk = fromfile(fid,  int32,   1   )        # Read record stop tag   
+
+    f    = fromfile(fid,  int32,   1   )        # Read record start tag 
+    save_xva = fromfile(fid,  float64, 12*N_ions)   
+    junk = fromfile(fid,  int32,   1   )        # Read record stop tag
+
+    fid.close   
+    
+    print('len save_T', junk)   
+
+    save_xva = reshape(save_xva, (12,N_ions), order='F')   
+#     print(save_xva[0])   
+
+    return N_ions, j_save, t_act, dt, iRF, save_xva
+
 def data_check(all_subdir,points_and_coord, condition_parameters, slash_cfg):
     
     # Récupérer les données pour chaque simu
