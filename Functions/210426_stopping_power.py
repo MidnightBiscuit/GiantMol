@@ -652,7 +652,6 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg,*
     # all files to stat
     # ~ fileload = [[[] for w in range(elem_1)] for i in range(elem_0)]
     
-    
     for k, address in enumerate(all_subdir):
 
     # in-loop variables
@@ -661,10 +660,15 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg,*
 
         # get only .dat files in each simulation directory
         onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
+        print(onlyfiles)
         # build path file
         data2[pnt].append('{}/{}'.format(address,sort(onlyfiles)[0].strip('.dat')))
         data4[pnt].append('{}/{}'.format(address,sort(onlyfiles)[1].strip('.dat')))
-        data0[pnt].append('{}/{}'.format(address,sort(onlyfiles)[2].strip('.dat')))
+        try:
+            data0[pnt].append('{}/{}'.format(address,sort(onlyfiles)[2].strip('.dat')))
+        except:
+            print('no injection data')
+            data0[pnt].append('NaN')
         data_address[pnt].append(address)
 
         # load fluorescence and T
