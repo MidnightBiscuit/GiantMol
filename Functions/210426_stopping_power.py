@@ -254,8 +254,13 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
     ylim2 = kwargs.get('ylim2', (-2,50))
     
     i_aux = file_name.find('_N')
-    file0 = file_dir2+'Temp_3D_Harmo_N1024_T500uK_F0.15D-18Kg_s_5'
-    file1 = 'SimuTypeQ'    + file_name[i_aux:] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
+    try:
+        i_EGMol = file_name.find('0RFG')
+        j_EGMol = re.sub('\D','', file_name[i_EGMol-5:i_EGMol+1] )
+    except:
+        print('coucou')
+    file0 = file_dir2+'Temp_3D_Harmo_N1024_T500uK_F0.10D-19Kg_s_5'
+    file1 = 'SimuTypeQ'    + file_name[i_aux:i_EGMol+4] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
     file2 = 'SimuType4_01' + file_name[i_aux:]
     file3 = 'SimuType2_01' + file_name[i_aux:]
 
@@ -265,8 +270,8 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
     T_aux0 = save_T[:,4:7]
     # tt0, T_CM0, T_aux0, PM0 = load_T_and_PM_simu(file_dir2+file0)
     tt1, T_CM1, T_aux1, PM1 = load_T_and_PM_simu(file_dir2+'Temp_'+file1)
-    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2+'50eV')
-    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3+'50eV')
+    tt2, T_CM2, T_aux2, PM2 = load_T_and_PM_simu(file_dir2+'Temp_'+file2)
+    tt3, T_CM3, T_aux3, PM3 = load_T_and_PM_simu(file_dir2+'Temp_'+file3)
 
     aux = mean(PM1[-100:])
     PM_variation = ( aux - mean(PM3[-100:]) ) / aux
@@ -660,14 +665,13 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg,*
 
         # get only .dat files in each simulation directory
         onlyfiles = [f for f in listdir(address) if isfile(join(address, f)) and not "xva" in f and ".dat" in f]
-        print(onlyfiles)
         # build path file
         data2[pnt].append('{}/{}'.format(address,sort(onlyfiles)[0].strip('.dat')))
         data4[pnt].append('{}/{}'.format(address,sort(onlyfiles)[1].strip('.dat')))
         try:
             data0[pnt].append('{}/{}'.format(address,sort(onlyfiles)[2].strip('.dat')))
         except:
-            print('no injection data')
+            print(f'{pnt:02}','-',f'{rep:02}',' > no injection data')
             data0[pnt].append('NaN')
         data_address[pnt].append(address)
 
@@ -710,6 +714,7 @@ def data_retrieve(all_subdir,points_and_coord, condition_parameters, slash_cfg,*
             print( "Point n°", pnt )
         
         print(f'{pnt:02}','-',f'{rep:02}',' > ',data0[pnt][rep])
+        print(onlyfiles)
         
         if k == len(points_and_coord)*len(num_runs) - 1:
             break
