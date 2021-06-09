@@ -90,38 +90,9 @@ def load_T_and_PM_simu_noGMOL(str_load):
     return data[:,0],data[:,1:4] # tt, T_CM, T_aux, PM
 
 def load_xyz_init_bin_DP(str_load):
-    aux_info = loadtxt(str_load+'.info',comments='%');
-    n_ions1 = int(aux_info[0])
-    n_ions2 = int(aux_info[1])
-    n_ions = n_ions1 + n_ions2
-#    print(n_ions1, n_ions2)
-    imax = 12 * n_ions
-
-#    print('extra_time', aux_info[19])
-    
-    fid = open(str_load+'.bin', 'rb')
-    junk = fromfile(fid, int32,1)        # Read record start tag
-    aux  = fromfile(fid, int32, 3);
-    junk = fromfile(fid, int32,1)        # Read record stop tag
-
-    junk = fromfile(fid, int32,1)        # Read record start tag
-    aux  = fromfile(fid, float64, imax);
-    junk = fromfile(fid, int32,1)        # Read record stop tag
-
-    fid.close
-    aux = reshape(aux, (12, n_ions),order='F')
-    r_LC = 1.e3*aux[0:3,0:n_ions1]
-    v_LC = aux[3:6,0:n_ions1]
-
-    #xyz = 1.e3*aux[0:3,:]
-    a_LC = aux[6:9,0:n_ions1]
-    v_LC_avg = aux[9:12,0:n_ions1]
-
-    return r_LC,v_LC,a_LC,v_LC_avg
-
     xva_pos = str_load.find('xva')
     aux_info = genfromtxt(str_load[:xva_pos]+'Langevin_cooling'+'.info',comments='%',dtype=None)
-    n_ions = int(aux_info[0])
+    n_ions = int(aux_info[1])
     print(n_ions)
     print(aux_info[-1])
     imax = 12 * n_ions
@@ -257,12 +228,14 @@ def plot_T_and_PM_Init_Inje_Evol(file_dir2,file_name,flag_plot,fig_name,**kwargs
     try:
         i_EGMol = file_name.find('0RFG')
         j_EGMol = re.sub('\D','', file_name[i_EGMol-5:i_EGMol+1] )
+        print(j_EGMol,'eV')
     except:
         print('coucou')
     file0 = file_dir2+'Temp_3D_Harmo_N1024_T500uK_F0.10D-19Kg_s_5'
     file1 = 'SimuTypeQ'    + file_name[i_aux:i_EGMol+4] ########## file1 = 'SimuType0'    + file_name[i_aux:17+36]
     file2 = 'SimuType4_01' + file_name[i_aux:]
     file3 = 'SimuType2_01' + file_name[i_aux:]
+    
 
     N_ions, j_save, dt_j_save_next, eta, Temp, save_T = load_Temp_init_bin_Lan(file0, flag_print=0)
     tt0 = save_T[:,0]
